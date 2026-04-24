@@ -578,7 +578,126 @@ body {
 .scan-progress-bar-inner { height:100%; background:var(--orange); border-radius:2px; transition:width 0.3s ease; }
 .scan-progress-text { font-family:var(--font-mono); font-size:0.65rem; color:var(--text-secondary); letter-spacing:1px; }
 
-/* ── FOOTER ── */
+/* ── TRADE SIGNAL CARD ── */
+.trade-signal-card {
+  border-radius:var(--radius-lg); overflow:hidden;
+  border:1px solid var(--border); margin-top:16px;
+}
+.trade-signal-card.long { border-color:rgba(0,230,118,0.35); }
+.trade-signal-card.short { border-color:rgba(255,61,87,0.35); }
+.trade-signal-card.watch { border-color:rgba(255,152,0,0.3); }
+
+.tsc-header {
+  display:flex; align-items:center; justify-content:space-between;
+  padding:14px 18px;
+  flex-wrap:wrap; gap:10px;
+}
+.tsc-header.long { background:linear-gradient(135deg,rgba(0,230,118,0.12) 0%,rgba(0,230,118,0.04) 100%); }
+.tsc-header.short { background:linear-gradient(135deg,rgba(255,61,87,0.12) 0%,rgba(255,61,87,0.04) 100%); }
+.tsc-header.watch { background:linear-gradient(135deg,rgba(255,152,0,0.1) 0%,rgba(255,152,0,0.03) 100%); }
+
+.tsc-direction {
+  display:flex; align-items:center; gap:12px;
+}
+.tsc-dir-badge {
+  font-family:var(--font-display); font-size:1.1rem; font-weight:900;
+  letter-spacing:4px; padding:6px 18px; border-radius:var(--radius);
+}
+.tsc-dir-badge.long { background:var(--bull-glow); color:var(--bull); border:1px solid var(--bull); }
+.tsc-dir-badge.short { background:var(--bear-glow); color:var(--bear); border:1px solid var(--bear); }
+.tsc-dir-badge.watch { background:var(--orange-dim); color:var(--orange); border:1px solid var(--orange); }
+
+.tsc-scores {
+  display:flex; gap:8px; align-items:center;
+}
+.tsc-score-pill {
+  font-family:var(--font-mono); font-size:0.65rem; padding:4px 10px;
+  border-radius:var(--radius); letter-spacing:1px;
+}
+.tsc-score-pill.bull { background:var(--bull-glow); color:var(--bull); border:1px solid rgba(0,230,118,0.3); }
+.tsc-score-pill.bear { background:var(--bear-glow); color:var(--bear); border:1px solid rgba(255,61,87,0.3); }
+
+.tsc-copy-btn {
+  display:flex; align-items:center; gap:6px; background:transparent;
+  border:1px solid var(--border-bright); color:var(--text-secondary);
+  font-family:var(--font-body); font-size:0.65rem; font-weight:600; letter-spacing:1.5px;
+  padding:7px 14px; border-radius:var(--radius); cursor:pointer; transition:all 0.2s ease;
+}
+.tsc-copy-btn:hover { border-color:var(--accent); color:var(--accent); }
+.tsc-copy-btn.copied { border-color:var(--bull); color:var(--bull); }
+
+.tsc-body { padding:16px 18px; display:flex; flex-direction:column; gap:14px; }
+
+.tsc-bias-block {
+  padding:12px 14px; background:var(--bg-elevated); border:1px solid var(--border);
+  border-radius:var(--radius); font-family:var(--font-mono); font-size:0.68rem;
+  color:var(--text-secondary); line-height:1.8; letter-spacing:0.3px;
+}
+.tsc-bias-block strong { color:var(--text-primary); }
+
+.tsc-grid {
+  display:grid; grid-template-columns:1fr 1fr; gap:10px;
+}
+.tsc-grid.single { grid-template-columns:1fr; }
+
+.tsc-level-block {
+  padding:12px 14px; border-radius:var(--radius); border:1px solid var(--border);
+  background:var(--bg-base); position:relative; overflow:hidden;
+}
+.tsc-level-block::before { content:''; position:absolute; left:0; top:0; bottom:0; width:3px; }
+.tsc-level-block.entry::before { background:var(--accent); }
+.tsc-level-block.sl::before { background:var(--bear); }
+.tsc-level-block.tp1::before { background:rgba(0,230,118,0.6); }
+.tsc-level-block.tp2::before { background:var(--bull); }
+.tsc-level-block.tp3::before { background:rgba(0,230,118,1); box-shadow:0 0 8px rgba(0,230,118,0.4); }
+.tsc-level-block.invalidation::before { background:var(--orange); }
+
+.tsc-block-label {
+  font-family:var(--font-mono); font-size:0.55rem; color:var(--text-dim);
+  letter-spacing:2px; margin-bottom:6px; text-transform:uppercase;
+}
+.tsc-block-price {
+  font-family:var(--font-display); font-size:1rem; font-weight:700;
+  letter-spacing:1px; margin-bottom:4px; line-height:1;
+}
+.tsc-level-block.entry .tsc-block-price { color:var(--accent); }
+.tsc-level-block.sl .tsc-block-price { color:var(--bear); }
+.tsc-level-block.tp1 .tsc-block-price,.tsc-level-block.tp2 .tsc-block-price,.tsc-level-block.tp3 .tsc-block-price { color:var(--bull); }
+.tsc-level-block.invalidation .tsc-block-price { color:var(--orange); font-size:0.8rem; }
+
+.tsc-block-sub {
+  font-family:var(--font-mono); font-size:0.6rem; color:var(--text-dim);
+  letter-spacing:0.3px; line-height:1.6;
+}
+.tsc-block-rr {
+  display:inline-block; margin-top:4px; font-family:var(--font-mono); font-size:0.62rem;
+  padding:2px 8px; border-radius:2px; letter-spacing:1px;
+  background:rgba(0,230,118,0.1); color:var(--bull); border:1px solid rgba(0,230,118,0.2);
+}
+.tsc-block-risk {
+  display:inline-block; margin-top:4px; font-family:var(--font-mono); font-size:0.62rem;
+  padding:2px 8px; border-radius:2px; letter-spacing:1px;
+  background:rgba(255,61,87,0.1); color:var(--bear); border:1px solid rgba(255,61,87,0.2);
+}
+
+.tsc-signals-row {
+  padding:10px 14px; background:var(--bg-elevated); border:1px solid var(--border);
+  border-radius:var(--radius);
+}
+.tsc-signals-label { font-family:var(--font-mono); font-size:0.55rem; color:var(--text-dim); letter-spacing:2px; margin-bottom:8px; }
+.tsc-signal-item { font-family:var(--font-mono); font-size:0.65rem; margin-bottom:4px; letter-spacing:0.3px; }
+
+.tsc-disclaimer {
+  font-family:var(--font-mono); font-size:0.58rem; color:var(--text-dim);
+  letter-spacing:0.5px; padding:8px 14px; border-top:1px solid var(--border);
+  text-align:center; line-height:1.6;
+}
+
+@media (max-width:768px) {
+  .tsc-grid { grid-template-columns:1fr; }
+  .tsc-header { flex-direction:column; align-items:flex-start; }
+}
+
 .footer { display:flex; justify-content:space-between; align-items:center; padding:14px 24px; border-top:1px solid var(--border); margin-top:32px; font-family:var(--font-mono); font-size:0.6rem; color:var(--text-dim); letter-spacing:1px; }
 
 /* ── ANIMATIONS ── */
@@ -895,6 +1014,9 @@ body {
       <span class="source-label" style="margin-left:16px;">TIMEFRAME:</span><span class="source-badge" id="smc-tf-badge">—</span>
       <span class="source-label" style="margin-left:16px;">CANDLES:</span><span class="source-badge" id="smc-candles-badge">—</span>
       <span class="source-label" style="margin-left:16px;">UPDATED:</span><span class="source-badge" id="smc-updated-badge">—</span>
+      <span class="source-label" style="margin-left:16px;">MARK PRICE:</span>
+      <span class="source-badge" id="smc-mark-price" style="color:var(--bull);font-size:0.85rem;font-weight:600;letter-spacing:1px;">—</span>
+      <span id="smc-mark-price-dot" style="display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--bull);box-shadow:0 0 6px var(--bull);margin-left:4px;animation:pulse-dot 1.5s ease-in-out infinite;"></span>
     </div>
     <div class="empty-state" id="smc-empty">
       <div class="empty-icon">◎</div>
@@ -1027,7 +1149,7 @@ const CFG = {
   GECKO_API    : 'https://api.coingecko.com/api/v3',
   KLINE_LIMIT  : 100,   // More candles for better SMC detection
   FETCH_TIMEOUT: 8000,
-  SMC_MARKET_COINS: 30, // Top N coins to scan in SMC market scanner
+  SMC_KLINE_DELAY: 60, // ms delay between kline fetches to avoid rate limiting
 };
 
 const TF_MAP = {
@@ -1059,7 +1181,11 @@ const STATE = {
   smcMarketData  : [],
   smcMarketFilter: 'all',
   fundingInterval: null,
+  smcPriceInterval: null,
   currentPrice   : 0,
+  smcLastTicker  : '',
+  smcLastCandles : null,
+  smcLastData    : null,
 };
 
 /* ── UTILITY ── */
@@ -1788,11 +1914,12 @@ function validateLevels(candles, currentPrice, obs, fvgs, eqhEql, pivots) {
 }
 
 /**
- * buildConfluence: synthesise all SMC data into a trade idea
+ * buildConfluence: synthesise all SMC data into a full professional trade plan
  */
-function buildConfluence(extStruct, intStruct, pd, currentPrice, obs, fvgs) {
-  if(!extStruct) return {direction:'NEUTRAL',summary:'Insufficient data for confluence analysis.',signals:[]};
+function buildConfluence(extStruct, intStruct, pd, currentPrice, obs, fvgs, ticker='', tf='', liveMarkPrice=null) {
+  if(!extStruct) return {direction:'NEUTRAL',summary:'Insufficient data for confluence analysis.',signals:[],bullScore:0,bearScore:0};
 
+  const price=liveMarkPrice||currentPrice;
   const signals=[];
   let bullScore=0,bearScore=0;
 
@@ -1828,13 +1955,9 @@ function buildConfluence(extStruct, intStruct, pd, currentPrice, obs, fvgs) {
 
   // Premium / Discount location
   if(pd){
-    if(pd.zone==='DISCOUNT'){
-      bullScore+=2;signals.push({txt:`Price in DISCOUNT (${pd.pct.toFixed(1)}%) — ideal buy zone for longs`,cls:'c-bull'});
-    } else if(pd.zone==='PREMIUM'){
-      bearScore+=2;signals.push({txt:`Price in PREMIUM (${pd.pct.toFixed(1)}%) — ideal zone for shorts`,cls:'c-bear'});
-    } else {
-      signals.push({txt:`Price at EQUILIBRIUM (${pd.pct.toFixed(1)}%) — wait for cleaner location`,cls:'c-accent'});
-    }
+    if(pd.zone==='DISCOUNT'){bullScore+=2;signals.push({txt:`Price in DISCOUNT (${pd.pct.toFixed(1)}%) — ideal buy zone for longs`,cls:'c-bull'});}
+    else if(pd.zone==='PREMIUM'){bearScore+=2;signals.push({txt:`Price in PREMIUM (${pd.pct.toFixed(1)}%) — ideal zone for shorts`,cls:'c-bear'});}
+    else {signals.push({txt:`Price at EQUILIBRIUM (${pd.pct.toFixed(1)}%) — wait for cleaner location`,cls:'c-accent'});}
   }
 
   // Active Order Blocks
@@ -1852,23 +1975,112 @@ function buildConfluence(extStruct, intStruct, pd, currentPrice, obs, fvgs) {
 
   // Final direction
   let direction='NEUTRAL',idea='';
-  if(bullScore>=4&&bullScore>bearScore+1){
-    direction='LONG';
-    idea=`External BULLISH · ${pd?pd.zone+' ARRAY':'Unknown Location'} · Score ${bullScore} vs ${bearScore} → LONG BIAS`;
-  } else if(bearScore>=4&&bearScore>bullScore+1){
-    direction='SHORT';
-    idea=`External BEARISH · ${pd?pd.zone+' ARRAY':'Unknown Location'} · Score ${bearScore} vs ${bullScore} → SHORT BIAS`;
-  } else if(bullScore>bearScore){
-    direction='WATCH_LONG';
-    idea=`Mild bullish confluence (${bullScore} vs ${bearScore}) — WATCH FOR LONG SETUP`;
-  } else if(bearScore>bullScore){
-    direction='WATCH_SHORT';
-    idea=`Mild bearish confluence (${bearScore} vs ${bullScore}) — WATCH FOR SHORT SETUP`;
-  } else {
-    idea='No clear confluence — conflicting signals, STAND ASIDE or wait for clearer structure';
+  if(bullScore>=4&&bullScore>bearScore+1){direction='LONG';idea=`External BULLISH · ${pd?pd.zone+' ARRAY':'Unknown Location'} · Score ${bullScore} vs ${bearScore} → LONG BIAS`;}
+  else if(bearScore>=4&&bearScore>bullScore+1){direction='SHORT';idea=`External BEARISH · ${pd?pd.zone+' ARRAY':'Unknown Location'} · Score ${bearScore} vs ${bullScore} → SHORT BIAS`;}
+  else if(bullScore>bearScore){direction='WATCH_LONG';idea=`Mild bullish confluence (${bullScore} vs ${bearScore}) — WATCH FOR LONG SETUP`;}
+  else if(bearScore>bullScore){direction='WATCH_SHORT';idea=`Mild bearish confluence (${bearScore} vs ${bullScore}) — WATCH FOR SHORT SETUP`;}
+  else{idea='No clear confluence — conflicting signals, STAND ASIDE';}
+
+  // ── BUILD FULL TRADE PLAN ──
+  let tradePlan=null;
+  const isLong=direction==='LONG'||direction==='WATCH_LONG';
+  const isShort=direction==='SHORT'||direction==='WATCH_SHORT';
+  const isHighConf=direction==='LONG'||direction==='SHORT';
+
+  if(isLong||isShort){
+    // Entry: best OB midpoint or current price if inside OB, else current price
+    let entryZone=null,entryReason='';
+    if(isLong&&bullOBsNear.length){
+      const bestOB=bullOBsNear.sort((a,b)=>Math.abs(a.distPct)-Math.abs(b.distPct))[0];
+      entryZone={low:bestOB.low,high:bestOB.high};
+      entryReason=`Bullish Order Block zone — demand area where institutional buy orders are expected`;
+    } else if(isShort&&bearOBsNear.length){
+      const bestOB=bearOBsNear.sort((a,b)=>Math.abs(a.distPct)-Math.abs(b.distPct))[0];
+      entryZone={low:bestOB.low,high:bestOB.high};
+      entryReason=`Bearish Order Block zone — supply area where institutional sell orders are expected`;
+    } else if(isLong&&bullFVGsNear.length){
+      const bestFVG=bullFVGsNear.sort((a,b)=>Math.abs(a.distPct)-Math.abs(b.distPct))[0];
+      entryZone={low:bestFVG.bot,high:bestFVG.top};
+      entryReason=`Bullish FVG (imbalance) — price returning to fill the gap creates a high-probability long entry`;
+    } else if(isShort&&bearFVGsNear.length){
+      const bestFVG=bearFVGsNear.sort((a,b)=>Math.abs(a.distPct)-Math.abs(b.distPct))[0];
+      entryZone={low:bestFVG.bot,high:bestFVG.top};
+      entryReason=`Bearish FVG (imbalance) — price returning to fill the gap creates a high-probability short entry`;
+    }
+    // If no OB/FVG, entry is at current price (market entry)
+    const entryPrice=entryZone?((entryZone.low+entryZone.high)/2):price;
+    const entryLow=entryZone?entryZone.low:price*0.999;
+    const entryHigh=entryZone?entryZone.high:price*1.001;
+    if(!entryReason) entryReason=isLong?'Market entry — no nearby OB/FVG, entering at current price with structure confirmation':'Market entry — no nearby OB/FVG, entering at current price with structure confirmation';
+
+    // SL: below last swing low (for longs) or above last swing high (for shorts)
+    let slPrice=null,slReason='';
+    if(isLong){
+      const lastLL=extStruct.lastLL||extStruct.labeledLows?.[extStruct.labeledLows.length-1];
+      if(lastLL){slPrice=lastLL.price*0.997;slReason=`Below last swing low (${fPrice(lastLL.price)}) — a close below this invalidates the bullish structure entirely`;}
+      else{slPrice=entryLow*0.97;slReason='3% below entry zone — no clear swing low available, using fixed buffer';}
+    } else {
+      const lastHH=extStruct.lastHH||extStruct.labeledHighs?.[extStruct.labeledHighs.length-1];
+      if(lastHH){slPrice=lastHH.price*1.003;slReason=`Above last swing high (${fPrice(lastHH.price)}) — a close above this invalidates the bearish structure entirely`;}
+      else{slPrice=entryHigh*1.03;slReason='3% above entry zone — no clear swing high available, using fixed buffer';}
+    }
+
+    // Risk percentage
+    const riskPct=slPrice?Math.abs((entryPrice-slPrice)/entryPrice*100):3;
+
+    // TPs based on structure levels + fib
+    let tp1=null,tp2=null,tp3=null,tp1R='',tp2R='',tp3R='';
+    if(isLong){
+      // TP1: nearest swing high or 1.5x risk (1.5R)
+      const nearestHigh=extStruct.lastHH;
+      tp1=nearestHigh&&nearestHigh.price>entryPrice?nearestHigh.price*0.998:entryPrice*(1+riskPct/100*1.5);
+      tp1R=nearestHigh&&nearestHigh.price>entryPrice?`Last Higher High (${fPrice(nearestHigh.price)}) — first liquidity level above`:'1.5R reward — first profit target';
+      // TP2: 2.5R or next major resistance
+      tp2=entryPrice*(1+riskPct/100*2.5);
+      tp2R='2.5R reward — partial profits, trail SL to breakeven after TP1 hit';
+      // TP3: 4R or range high (premium zone)
+      tp3=pd?pd.swingHigh*0.995:entryPrice*(1+riskPct/100*4);
+      tp3R=pd?`Range high (${fPrice(pd.swingHigh)}) — full swing target, PREMIUM zone top`:'4R reward — full target, close entire position';
+    } else {
+      // TP1: nearest swing low or 1.5R
+      const nearestLow=extStruct.lastLL;
+      tp1=nearestLow&&nearestLow.price<entryPrice?nearestLow.price*1.002:entryPrice*(1-riskPct/100*1.5);
+      tp1R=nearestLow&&nearestLow.price<entryPrice?`Last Lower Low (${fPrice(nearestLow.price)}) — first liquidity level below`:'1.5R reward — first profit target';
+      tp2=entryPrice*(1-riskPct/100*2.5);
+      tp2R='2.5R reward — partial profits, trail SL to breakeven after TP1 hit';
+      tp3=pd?pd.swingLow*1.005:entryPrice*(1-riskPct/100*4);
+      tp3R=pd?`Range low (${fPrice(pd.swingLow)}) — full swing target, DISCOUNT zone bottom`:'4R reward — full target, close entire position';
+    }
+
+    // Invalidation condition
+    const invalidation=isLong
+      ?`Candle CLOSE below ${fPrice(slPrice)} — this would break the last major swing low and confirm bearish structure. Exit immediately on close.`
+      :`Candle CLOSE above ${fPrice(slPrice)} — this would break the last major swing high and confirm bullish structure. Exit immediately on close.`;
+
+    // Bias reasoning paragraph
+    const biasLines=[];
+    biasLines.push(`${ticker||'This coin'} is showing a ${extStruct.bias} external market structure with a sequence of ${extStruct.bias==='BULLISH'?'Higher Highs and Higher Lows':'Lower Lows and Lower Highs'}.`);
+    if(extStruct.lastEvent) biasLines.push(`The most recent structural event was a ${extStruct.lastEvent.type} ${extStruct.lastEvent.dir} at ${fPrice(extStruct.lastEvent.price)}, ${extStruct.lastEvent.desc}.`);
+    if(pd) biasLines.push(`Price is currently in the ${pd.zone} zone at ${pd.pct.toFixed(1)}% of the swing range — ${pd.zone==='DISCOUNT'?'a favourable location to look for longs':pd.zone==='PREMIUM'?'a favourable location to look for shorts':'a neutral location, ideally wait for price to reach a cleaner zone'}.`);
+    if(intStruct&&intStruct.bias!==extStruct.bias) biasLines.push(`Internal structure is showing ${intStruct.bias} bias — this indicates a pullback within the ${extStruct.bias} trend, which is the ideal entry timing.`);
+
+    tradePlan={
+      direction:isLong?'LONG':'SHORT',
+      isHighConf,
+      ticker:ticker||'—',
+      tf:tf||'—',
+      markPrice:price,
+      entryZone:{low:entryLow,high:entryHigh,mid:entryPrice},
+      entryReason,
+      slPrice,slReason,riskPct,
+      tp1,tp1R,tp2,tp2R,tp3,tp3R,
+      invalidation,
+      biasLines,
+      bullScore,bearScore,
+    };
   }
 
-  return {direction,idea,signals,bullScore,bearScore};
+  return {direction,idea,signals,bullScore,bearScore,tradePlan};
 }
 
 /* ══════════════════════════════════════════════════════════════
@@ -2317,39 +2529,178 @@ function renderConfluence(confluence) {
   if(!confluence){container.innerHTML='<div class="levels-placeholder">No confluence data</div>';return;}
 
   const dir=confluence.direction;
-  const boxCls=dir==='LONG'?'long':dir==='SHORT'?'short':(dir==='WATCH_LONG'||dir==='WATCH_SHORT')?'wait':'';
-  const bannerCls=dir==='LONG'?'long':dir==='SHORT'?'short':(dir==='WATCH_LONG'||dir==='WATCH_SHORT')?'wait':'neutral';
-  const bannerText=dir==='LONG'?'▲ HIGH CONFLUENCE LONG BIAS':dir==='SHORT'?'▼ HIGH CONFLUENCE SHORT BIAS':dir==='WATCH_LONG'?'◉ WATCH FOR LONG SETUP':dir==='WATCH_SHORT'?'◉ WATCH FOR SHORT SETUP':'◈ NO CLEAR TRADE SETUP — STAND ASIDE';
+  const tp=confluence.tradePlan;
+  const isLong=dir==='LONG'||dir==='WATCH_LONG';
+  const isShort=dir==='SHORT'||dir==='WATCH_SHORT';
+  const isHighConf=dir==='LONG'||dir==='SHORT';
+  const cardCls=isLong?'long':isShort?'short':'watch';
+  const headerCls=isLong?'long':isShort?'short':'watch';
+  const dirText=dir==='LONG'?'▲ LONG':dir==='SHORT'?'▼ SHORT':dir==='WATCH_LONG'?'◉ WATCH LONG':dir==='WATCH_SHORT'?'◉ WATCH SHORT':'◈ NO TRADE';
+  const confLabel=isHighConf?'HIGH CONFLUENCE':'WATCH';
 
+  // Score row
   const scoreHTML=`
-    <div style="display:flex;gap:16px;margin-bottom:14px;flex-wrap:wrap;">
-      <div style="background:var(--bull-glow);border:1px solid rgba(0,230,118,0.3);border-radius:4px;padding:8px 16px;text-align:center;">
-        <div style="font-family:var(--font-mono);font-size:0.55rem;color:var(--text-dim);letter-spacing:1px;margin-bottom:4px;">BULL SCORE</div>
-        <div style="font-family:var(--font-display);font-size:1.4rem;font-weight:700;color:var(--bull);">${confluence.bullScore}</div>
-      </div>
-      <div style="background:var(--bear-glow);border:1px solid rgba(255,61,87,0.3);border-radius:4px;padding:8px 16px;text-align:center;">
-        <div style="font-family:var(--font-mono);font-size:0.55rem;color:var(--text-dim);letter-spacing:1px;margin-bottom:4px;">BEAR SCORE</div>
-        <div style="font-family:var(--font-display);font-size:1.4rem;font-weight:700;color:var(--bear);">${confluence.bearScore}</div>
-      </div>
-      <div style="flex:1;min-width:200px;padding:8px 12px;background:var(--bg-elevated);border:1px solid var(--border);border-radius:4px;">
-        <div style="font-family:var(--font-mono);font-size:0.55rem;color:var(--text-dim);letter-spacing:1px;margin-bottom:6px;">READING</div>
-        <div style="font-family:var(--font-mono);font-size:0.72rem;color:var(--text-primary);letter-spacing:0.5px;line-height:1.6;">${confluence.idea}</div>
-      </div>
+    <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
+      <span class="tsc-score-pill bull">BULL ${confluence.bullScore}</span>
+      <span class="tsc-score-pill bear">BEAR ${confluence.bearScore}</span>
+      <span style="font-family:var(--font-mono);font-size:0.62rem;color:var(--text-dim);letter-spacing:1px;">${confLabel} · ${dir.replace('_',' ')}</span>
     </div>`;
 
+  // If no trade plan (NEUTRAL), show simple card
+  if(!tp){
+    container.innerHTML=`
+      <div class="trade-signal-card watch">
+        <div class="tsc-header watch">
+          <div class="tsc-direction">
+            <span class="tsc-dir-badge watch">◈ NO SETUP</span>
+            ${scoreHTML}
+          </div>
+        </div>
+        <div class="tsc-body">
+          <div class="tsc-bias-block">${confluence.idea}</div>
+          <div class="tsc-signals-row">
+            <div class="tsc-signals-label">CONFLUENCE SIGNALS</div>
+            ${confluence.signals.map(s=>`<div class="tsc-signal-item ${s.cls}">→ ${s.txt}</div>`).join('')}
+          </div>
+        </div>
+        <div class="tsc-disclaimer">⚠ NOT FINANCIAL ADVICE · CRYPTEX IS AN ANALYSIS TOOL ONLY · ALWAYS DO YOUR OWN RESEARCH</div>
+      </div>`;
+    return;
+  }
+
+  // Build copy text for clipboard
+  const riskPct=tp.riskPct?tp.riskPct.toFixed(2):'~';
+  const tp1RR=tp.slPrice&&tp.tp1?Math.abs((tp.tp1-tp.entryZone.mid)/tp.entryZone.mid*100/tp.riskPct).toFixed(1):'—';
+  const tp2RR=tp.slPrice&&tp.tp2?Math.abs((tp.tp2-tp.entryZone.mid)/tp.entryZone.mid*100/tp.riskPct).toFixed(1):'—';
+  const tp3RR=tp.slPrice&&tp.tp3?Math.abs((tp.tp3-tp.entryZone.mid)/tp.entryZone.mid*100/tp.riskPct).toFixed(1):'—';
+
+  const copyText=[
+    `═══════════════════════════════════`,
+    `CRYPTEX SMC SIGNAL — ${tp.ticker} / ${tp.tf}`,
+    `═══════════════════════════════════`,
+    `DIRECTION   : ${tp.direction}`,
+    `MARK PRICE  : ${fPrice(tp.markPrice)}`,
+    `CONFIDENCE  : ${isHighConf?'HIGH CONFLUENCE':'WATCH SETUP'} (Bull ${confluence.bullScore} / Bear ${confluence.bearScore})`,
+    ``,
+    `── ENTRY ──`,
+    `Zone        : ${fPrice(tp.entryZone.low)} — ${fPrice(tp.entryZone.high)}`,
+    `Mid         : ${fPrice(tp.entryZone.mid)}`,
+    `Why         : ${tp.entryReason}`,
+    ``,
+    `── STOP LOSS ──`,
+    `Level       : ${fPrice(tp.slPrice)}`,
+    `Risk        : ${riskPct}% from entry`,
+    `Why         : ${tp.slReason}`,
+    ``,
+    `── TAKE PROFITS ──`,
+    `TP1 (${tp1RR}R) : ${fPrice(tp.tp1)}`,
+    `Why         : ${tp.tp1R}`,
+    ``,
+    `TP2 (${tp2RR}R) : ${fPrice(tp.tp2)}`,
+    `Why         : ${tp.tp2R}`,
+    ``,
+    `TP3 (${tp3RR}R) : ${fPrice(tp.tp3)}`,
+    `Why         : ${tp.tp3R}`,
+    ``,
+    `── INVALIDATION ──`,
+    `${tp.invalidation}`,
+    ``,
+    `── BIAS ──`,
+    ...tp.biasLines,
+    ``,
+    `── CONFLUENCE SIGNALS ──`,
+    ...confluence.signals.map(s=>`→ ${s.txt}`),
+    ``,
+    `═══════════════════════════════════`,
+    `Generated by CRYPTEX · ${nowStr()}`,
+    `NOT FINANCIAL ADVICE`,
+    `═══════════════════════════════════`,
+  ].join('\n');
+
+  // Bias block
+  const biasHTML=`<div class="tsc-bias-block">${tp.biasLines.map(l=>`<span>${l}</span>`).join('<br>')}</div>`;
+
+  // Entry block
+  const entryHTML=`
+    <div class="tsc-level-block entry">
+      <div class="tsc-block-label">📍 ENTRY ZONE</div>
+      <div class="tsc-block-price">${fPrice(tp.entryZone.low)} — ${fPrice(tp.entryZone.high)}</div>
+      <div style="font-family:var(--font-mono);font-size:0.7rem;color:var(--accent);margin-bottom:4px;">MID: ${fPrice(tp.entryZone.mid)}</div>
+      <div class="tsc-block-sub">${tp.entryReason}</div>
+    </div>`;
+
+  // SL block
+  const slHTML=`
+    <div class="tsc-level-block sl">
+      <div class="tsc-block-label">🛡 STOP LOSS</div>
+      <div class="tsc-block-price">${fPrice(tp.slPrice)}</div>
+      <span class="tsc-block-risk">RISK: ${riskPct}% FROM ENTRY</span>
+      <div class="tsc-block-sub" style="margin-top:6px;">${tp.slReason}</div>
+    </div>`;
+
+  // TP blocks
+  const tp1HTML=`
+    <div class="tsc-level-block tp1">
+      <div class="tsc-block-label">🎯 TAKE PROFIT 1</div>
+      <div class="tsc-block-price">${fPrice(tp.tp1)}</div>
+      <span class="tsc-block-rr">${tp1RR}R REWARD</span>
+      <div class="tsc-block-sub" style="margin-top:6px;">${tp.tp1R}<br><span style="color:var(--orange);">→ After TP1: Move SL to breakeven</span></div>
+    </div>`;
+  const tp2HTML=`
+    <div class="tsc-level-block tp2">
+      <div class="tsc-block-label">🎯 TAKE PROFIT 2</div>
+      <div class="tsc-block-price">${fPrice(tp.tp2)}</div>
+      <span class="tsc-block-rr">${tp2RR}R REWARD</span>
+      <div class="tsc-block-sub" style="margin-top:6px;">${tp.tp2R}<br><span style="color:var(--orange);">→ After TP2: Trail SL to TP1</span></div>
+    </div>`;
+  const tp3HTML=`
+    <div class="tsc-level-block tp3">
+      <div class="tsc-block-label">🎯 TAKE PROFIT 3</div>
+      <div class="tsc-block-price">${fPrice(tp.tp3)}</div>
+      <span class="tsc-block-rr">${tp3RR}R REWARD</span>
+      <div class="tsc-block-sub" style="margin-top:6px;">${tp.tp3R}</div>
+    </div>`;
+
+  // Invalidation block
+  const invHTML=`
+    <div class="tsc-level-block invalidation">
+      <div class="tsc-block-label">⛔ INVALIDATION</div>
+      <div class="tsc-block-price" style="font-size:0.78rem;">${fPrice(tp.slPrice)}</div>
+      <div class="tsc-block-sub" style="margin-top:4px;">${tp.invalidation}</div>
+    </div>`;
+
+  // Signals
   const signalsHTML=`
-    <div style="font-family:var(--font-mono);font-size:0.6rem;color:var(--text-dim);letter-spacing:1px;margin-bottom:8px;">CONFLUENCE SIGNALS</div>
-    <div class="confluence-box ${boxCls}">
-      <div class="confluence-reading">
-        ${confluence.signals.map(s=>`<div class="${s.cls}" style="margin-bottom:4px;">→ ${s.txt}</div>`).join('')}
-      </div>
+    <div class="tsc-signals-row">
+      <div class="tsc-signals-label">CONFLUENCE SIGNALS (${confluence.signals.length} FACTORS)</div>
+      ${confluence.signals.map(s=>`<div class="tsc-signal-item ${s.cls}">→ ${s.txt}</div>`).join('')}
     </div>`;
 
   container.innerHTML=`
-    ${scoreHTML}
-    ${signalsHTML}
-    <div class="trade-idea-banner ${bannerCls}" style="margin-top:14px;">${bannerText}</div>
-  `;
+    <div class="trade-signal-card ${cardCls}" id="trade-signal-card-inner">
+      <div class="tsc-header ${headerCls}">
+        <div class="tsc-direction">
+          <span class="tsc-dir-badge ${cardCls}">${dirText}</span>
+          ${scoreHTML}
+        </div>
+        <button class="tsc-copy-btn" id="tsc-copy-btn" onclick="copySignalToClipboard()">
+          <span id="tsc-copy-icon">⎘</span>
+          <span id="tsc-copy-label">COPY SIGNAL</span>
+        </button>
+      </div>
+      <div class="tsc-body">
+        ${biasHTML}
+        <div class="tsc-grid single">${entryHTML}</div>
+        <div class="tsc-grid">${slHTML}${invHTML}</div>
+        <div class="tsc-grid">${tp1HTML}${tp2HTML}</div>
+        <div class="tsc-grid single">${tp3HTML}</div>
+        ${signalsHTML}
+      </div>
+      <div class="tsc-disclaimer">⚠ NOT FINANCIAL ADVICE · THIS IS AN ALGORITHMIC ANALYSIS ONLY · ALWAYS DO YOUR OWN RESEARCH AND MANAGE RISK APPROPRIATELY · NEVER RISK MORE THAN YOU CAN AFFORD TO LOSE</div>
+    </div>`;
+
+  // Store copy text for clipboard function
+  window.__smcCopyText=copyText;
 }
 
 /* ══════════════════════════════════════════════════════════════
@@ -2423,6 +2774,9 @@ async function runSmcCoinScan() {
   $('smc-loading').style.display='flex'; $('smc-loader-text').textContent='FETCHING KLINE DATA...';
   $('smc-fetch-btn').classList.add('loading'); setStatus('loading','SMC ANALYSING');
 
+  // Clear any existing price polling
+  if(STATE.smcPriceInterval){ clearInterval(STATE.smcPriceInterval); STATE.smcPriceInterval=null; }
+
   // Fetch klines — use more candles for better detection
   const candles=await fetchKline(symbol,tf,100);
   if(!candles||candles.length<20){
@@ -2432,8 +2786,21 @@ async function runSmcCoinScan() {
     $('smc-fetch-btn').classList.remove('loading'); setStatus('error','ERROR'); return;
   }
 
-  // Get current price
+  // Get current price from klines, and try to get live mark price from exchange
   const currentPrice=candles[candles.length-1].c;
+  // Attempt live price fetch (non-blocking, falls back to kline close)
+  let liveMarkPrice=currentPrice;
+  try {
+    const lpRes=await fetchWithTimeout(`${CFG.BINANCE_FAPI}/premiumIndex?symbol=${symbol}`,4000);
+    const lpData=await lpRes.json();
+    if(lpData&&lpData.markPrice) liveMarkPrice=parseFloat(lpData.markPrice);
+  } catch(_){
+    try {
+      const lpRes2=await fetchWithTimeout(`${CFG.BYBIT_API}/tickers?category=linear&symbol=${symbol}`,4000);
+      const lpData2=await lpRes2.json();
+      if(lpData2.retCode===0&&lpData2.result.list[0]) liveMarkPrice=parseFloat(lpData2.result.list[0].markPrice);
+    } catch(_){}
+  }
 
   $('smc-loader-text').textContent='DETECTING SWING POINTS...';
   // External swings (strength=2)
@@ -2461,14 +2828,25 @@ async function runSmcCoinScan() {
   $('smc-loader-text').textContent='COMPUTING CONFLUENCE...';
   const pivots=calcPivots(candles,currentPrice);
   const validations=validateLevels(candles,currentPrice,obs,fvgs,eqhEql,pivots);
-  const confluence=buildConfluence(extStruct,intStruct,pd,currentPrice,obs,fvgs);
+  const confluence=buildConfluence(extStruct,intStruct,pd,currentPrice,obs,fvgs,ticker,tf,liveMarkPrice);
 
   // Update source bar
   $('smc-coin-badge').textContent=ticker;
   $('smc-tf-badge').textContent=tf.toUpperCase();
   $('smc-candles-badge').textContent=candles.length+' CANDLES';
   $('smc-updated-badge').textContent=nowStr();
+  $('smc-mark-price').textContent=fPrice(liveMarkPrice);
   $('smc-source-bar').style.display='flex';
+
+  // Start live price polling every 3s
+  if(STATE.smcPriceInterval) clearInterval(STATE.smcPriceInterval);
+  STATE.smcPriceInterval=setInterval(async()=>{
+    try {
+      const r=await fetchWithTimeout(`${CFG.BINANCE_FAPI}/premiumIndex?symbol=${symbol}`,3000);
+      const d=await r.json();
+      if(d&&d.markPrice) $('smc-mark-price').textContent=fPrice(parseFloat(d.markPrice));
+    } catch(_){}
+  },3000);
 
   // Render all
   $('smc-loading').style.display='none';
@@ -2610,9 +2988,10 @@ async function runSmcMarketScan() {
       catch(e2){ throw new Error('Could not fetch market data: '+e2.message); }
     }
 
-    // Sort by volume, take top N
+    // Sort by volume — scan ALL available coins, no hardcoded limit
     allCoins.sort((a,b)=>b.quoteVolume-a.quoteVolume);
-    const topCoins=allCoins.slice(0,CFG.SMC_MARKET_COINS);
+    // Filter out extremely low-volume pairs (less than $50k/day) that are illiquid
+    const topCoins=allCoins.filter(c=>c.quoteVolume>50000);
 
     $('smc-market-loading').style.display='none';
     $('smc-market-progress').style.display='block';
@@ -2769,6 +3148,46 @@ function renderSmcMarketCards() {
       runSmcCoinScan();
     });
   });
+}
+
+/* ══════════════════════════════════════════════════════════════
+   COPY SIGNAL TO CLIPBOARD
+══════════════════════════════════════════════════════════════ */
+function copySignalToClipboard() {
+  const text=window.__smcCopyText;
+  if(!text) return;
+  const btn=$('tsc-copy-btn');
+  const icon=$('tsc-copy-icon');
+  const label=$('tsc-copy-label');
+  try {
+    navigator.clipboard.writeText(text).then(()=>{
+      if(btn){btn.classList.add('copied');}
+      if(icon) icon.textContent='✓';
+      if(label) label.textContent='COPIED!';
+      setTimeout(()=>{
+        if(btn) btn.classList.remove('copied');
+        if(icon) icon.textContent='⎘';
+        if(label) label.textContent='COPY SIGNAL';
+      },2500);
+    }).catch(()=>{
+      // Fallback for older browsers
+      const ta=document.createElement('textarea');
+      ta.value=text; ta.style.position='fixed'; ta.style.opacity='0';
+      document.body.appendChild(ta); ta.select();
+      document.execCommand('copy'); document.body.removeChild(ta);
+      if(btn) btn.classList.add('copied');
+      if(icon) icon.textContent='✓';
+      if(label) label.textContent='COPIED!';
+      setTimeout(()=>{
+        if(btn) btn.classList.remove('copied');
+        if(icon) icon.textContent='⎘';
+        if(label) label.textContent='COPY SIGNAL';
+      },2500);
+    });
+  } catch(_){
+    alert('Copy failed. Please copy manually from console.');
+    console.log(text);
+  }
 }
 
 /* ══════════════════════════════════════════════════════════════
