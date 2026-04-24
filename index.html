@@ -738,9 +738,16 @@ body {
       <span class="status-dot" id="status-dot"></span>
       <span class="status-text" id="status-text">READY</span>
     </div>
+    <button id="sound-toggle" title="Toggle scan sounds" onclick="toggleSound()" style="background:none;border:1px solid var(--border);border-radius:var(--radius);padding:5px 10px;cursor:pointer;font-family:var(--font-mono);font-size:0.65rem;color:var(--text-dim);letter-spacing:1px;transition:all 0.2s ease;white-space:nowrap;">🔔 SFX ON</button>
     <div class="header-time" id="header-time">--:--:--</div>
   </div>
 </header>
+
+<!-- Toast notification (shown in-page when tab is visible) -->
+<div id="cryptex-toast" style="position:fixed;bottom:24px;right:24px;z-index:9999;background:var(--bg-elevated);border:1px solid var(--border-bright);border-radius:var(--radius-lg);padding:12px 18px;font-family:var(--font-mono);font-size:0.72rem;letter-spacing:1px;color:var(--text-primary);box-shadow:0 8px 32px rgba(0,0,0,0.7);display:none;align-items:center;gap:10px;max-width:360px;animation:fadeIn 0.2s ease;">
+  <span id="toast-icon" style="font-size:1.1rem;">✓</span>
+  <div><div id="toast-title" style="font-weight:600;margin-bottom:2px;"></div><div id="toast-msg" style="color:var(--text-secondary);font-size:0.65rem;"></div></div>
+</div>
 
 <!-- ═══ MAIN NAV ═══ -->
 <nav class="main-nav">
@@ -2718,6 +2725,7 @@ async function fetchCoin() {
   $('coin-grid').style.display='none'; $('source-bar').style.display='none';
   $('loading-state').style.display='flex'; $('loader-text').textContent='CONNECTING TO BINANCE...';
   $('fetch-btn').classList.add('loading'); setStatus('loading','FETCHING');
+  onScanStart('FETCHING');
 
   let market=null;
   try {
@@ -2731,7 +2739,8 @@ async function fetchCoin() {
       $('loading-state').style.display='none'; $('error-state').style.display='flex';
       $('error-title').textContent='FETCH FAILED';
       $('error-sub').textContent=`Could not fetch "${ticker}" from Binance or Bybit.`;
-      $('fetch-btn').classList.remove('loading'); setStatus('error','ERROR'); return;
+      $('fetch-btn').classList.remove('loading'); setStatus('error','ERROR');
+      onScanError('SINGLE COIN'); return;
     }
   }
 
@@ -2758,6 +2767,7 @@ async function fetchCoin() {
   renderOrderBook(market); renderMarketStats(gecko); renderSocials(gecko);
   renderDescription(gecko); renderSourceBar(market.source,tf);
   $('fetch-btn').classList.remove('loading'); setStatus('ok','LIVE');
+  onScanComplete('COIN FETCHED', `${ticker} data loaded — ${tf.toUpperCase()} analysis ready.`);
 }
 
 /* ══════════════════════════════════════════════════════════════
@@ -2773,6 +2783,7 @@ async function runSmcCoinScan() {
   $('smc-results').style.display='none'; $('smc-source-bar').style.display='none';
   $('smc-loading').style.display='flex'; $('smc-loader-text').textContent='FETCHING KLINE DATA...';
   $('smc-fetch-btn').classList.add('loading'); setStatus('loading','SMC ANALYSING');
+  onScanStart('SMC');
 
   // Clear any existing price polling
   if(STATE.smcPriceInterval){ clearInterval(STATE.smcPriceInterval); STATE.smcPriceInterval=null; }
@@ -2783,7 +2794,8 @@ async function runSmcCoinScan() {
     $('smc-loading').style.display='none'; $('smc-error').style.display='flex';
     $('smc-error-title').textContent='DATA FETCH FAILED';
     $('smc-error-sub').textContent=`Could not fetch klines for "${ticker}USDT". Check ticker.`;
-    $('smc-fetch-btn').classList.remove('loading'); setStatus('error','ERROR'); return;
+    $('smc-fetch-btn').classList.remove('loading'); setStatus('error','ERROR');
+    onScanError('SMC ANALYSIS'); return;
   }
 
   // Get current price from klines, and try to get live mark price from exchange
@@ -2863,6 +2875,7 @@ async function runSmcCoinScan() {
 
   $('smc-fetch-btn').classList.remove('loading');
   setStatus('ok','SMC COMPLETE');
+  onScanComplete('SMC ANALYSIS DONE', `${ticker} ${tf.toUpperCase()} — ${confluence.direction.replace('_',' ')} signal ready.`);
 }
 
 /* ══════════════════════════════════════════════════════════════
@@ -2875,6 +2888,7 @@ async function runScanner() {
   $('scanner-loading').style.display='flex';
   $('scanner-loader-text').textContent=`SCANNING ${STATE.scannerSource.toUpperCase()} MARKET...`;
   $('scanner-fetch-btn').classList.add('loading'); setStatus('loading','SCANNING');
+  onScanStart('MARKET SCAN');
 
   try {
     let coins;
@@ -2893,11 +2907,13 @@ async function runScanner() {
     $('scanner-table-wrapper').style.display='block';
     renderScannerCategory();
     setStatus('ok','SCAN COMPLETE');
+    onScanComplete('MARKET SCAN DONE', `${coins.length} pairs scanned — results ready.`);
   } catch(e){
     $('scanner-loading').style.display='none'; $('scanner-empty').style.display='flex';
     $('scanner-empty').querySelector('.empty-title').textContent='SCAN FAILED';
     $('scanner-empty').querySelector('.empty-sub').textContent=e.message;
     setStatus('error','ERROR');
+    onScanError('MARKET SCAN');
   }
   $('scanner-fetch-btn').classList.remove('loading');
 }
@@ -2974,6 +2990,7 @@ async function runSmcMarketScan() {
   $('smc-market-stats-bar').style.display='none';
   $('smc-market-fetch-btn').classList.add('loading');
   setStatus('loading','SMC SCANNING');
+  onScanStart('SMC MARKET SCAN');
 
   const tf=STATE.smcMarketTf;
 
@@ -3056,6 +3073,7 @@ async function runSmcMarketScan() {
 
     renderSmcMarketCards();
     setStatus('ok','SMC SCAN DONE');
+    onScanComplete('SMC MARKET SCAN DONE', `${topCoins.length} coins scanned · ${results.length} actionable setups found.`);
   } catch(e){
     $('smc-market-progress').style.display='none';
     $('smc-market-loading').style.display='none';
@@ -3063,6 +3081,7 @@ async function runSmcMarketScan() {
     $('smc-market-empty').querySelector('.empty-title').textContent='SCAN FAILED';
     $('smc-market-empty').querySelector('.empty-sub').textContent=e.message;
     setStatus('error','ERROR');
+    onScanError('SMC MARKET SCAN');
   }
   $('smc-market-fetch-btn').classList.remove('loading');
 }
@@ -3191,6 +3210,188 @@ function copySignalToClipboard() {
 }
 
 /* ══════════════════════════════════════════════════════════════
+   SOUND ENGINE — Web Audio API, zero dependencies, always works
+   All sounds are synthesised in-browser, no CDN required
+══════════════════════════════════════════════════════════════ */
+let _audioCtx = null;
+
+function getAudioCtx() {
+  if (!_audioCtx || _audioCtx.state === 'closed') {
+    _audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  }
+  // Resume if suspended (browser autoplay policy)
+  if (_audioCtx.state === 'suspended') _audioCtx.resume();
+  return _audioCtx;
+}
+
+/**
+ * playStartSound — ascending two-tone chime, clean and short
+ * Sounds like a terminal "initiating" — two rising sine tones
+ */
+function playStartSound() {
+  try {
+    const ctx = getAudioCtx();
+    const now = ctx.currentTime;
+
+    // Note 1: 440 Hz (A4)
+    const o1 = ctx.createOscillator();
+    const g1 = ctx.createGain();
+    o1.connect(g1); g1.connect(ctx.destination);
+    o1.type = 'sine';
+    o1.frequency.setValueAtTime(440, now);
+    g1.gain.setValueAtTime(0, now);
+    g1.gain.linearRampToValueAtTime(0.18, now + 0.01);
+    g1.gain.exponentialRampToValueAtTime(0.001, now + 0.18);
+    o1.start(now); o1.stop(now + 0.2);
+
+    // Note 2: 660 Hz (E5) — major third up, after a short gap
+    const o2 = ctx.createOscillator();
+    const g2 = ctx.createGain();
+    o2.connect(g2); g2.connect(ctx.destination);
+    o2.type = 'sine';
+    o2.frequency.setValueAtTime(660, now + 0.12);
+    g2.gain.setValueAtTime(0, now + 0.12);
+    g2.gain.linearRampToValueAtTime(0.15, now + 0.13);
+    g2.gain.exponentialRampToValueAtTime(0.001, now + 0.32);
+    o2.start(now + 0.12); o2.stop(now + 0.35);
+  } catch(_) {}
+}
+
+/**
+ * playDoneSound — descending resolution chord, satisfying "complete"
+ * Three-tone descending arpeggio: G5 → E5 → C5
+ */
+function playDoneSound() {
+  try {
+    const ctx = getAudioCtx();
+    const now = ctx.currentTime;
+
+    const notes = [
+      { freq: 783.99, start: 0,    dur: 0.25 },  // G5
+      { freq: 659.25, start: 0.13, dur: 0.25 },  // E5
+      { freq: 523.25, start: 0.26, dur: 0.45 },  // C5 (held longer)
+    ];
+
+    notes.forEach(n => {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      // Add slight detune warmth
+      const detune = ctx.createOscillator();
+      const detuneGain = ctx.createGain();
+      detune.connect(detuneGain); detuneGain.connect(ctx.destination);
+      detune.type = 'sine';
+      detune.frequency.setValueAtTime(n.freq * 1.002, now + n.start);
+      detuneGain.gain.setValueAtTime(0, now + n.start);
+      detuneGain.gain.linearRampToValueAtTime(0.04, now + n.start + 0.01);
+      detuneGain.gain.exponentialRampToValueAtTime(0.001, now + n.start + n.dur);
+      detune.start(now + n.start); detune.stop(now + n.start + n.dur + 0.05);
+
+      osc.connect(gain); gain.connect(ctx.destination);
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(n.freq, now + n.start);
+      gain.gain.setValueAtTime(0, now + n.start);
+      gain.gain.linearRampToValueAtTime(0.16, now + n.start + 0.01);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + n.start + n.dur);
+      osc.start(now + n.start); osc.stop(now + n.start + n.dur + 0.05);
+    });
+  } catch(_) {}
+}
+
+/**
+ * playErrorSound — flat dissonant buzz, clearly "something went wrong"
+ */
+function playErrorSound() {
+  try {
+    const ctx = getAudioCtx();
+    const now = ctx.currentTime;
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.connect(gain); gain.connect(ctx.destination);
+    osc.type = 'sawtooth';
+    osc.frequency.setValueAtTime(180, now);
+    osc.frequency.linearRampToValueAtTime(120, now + 0.3);
+    gain.gain.setValueAtTime(0.12, now);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.35);
+    osc.start(now); osc.stop(now + 0.38);
+  } catch(_) {}
+}
+
+/* ══════════════════════════════════════════════════════════════
+   BACKGROUND SCAN KEEPALIVE
+   Browsers throttle setTimeout/setInterval in background tabs
+   but do NOT throttle:
+     - fetch() promises (network I/O runs regardless)
+     - async/await chains built on fetch
+   Our scan loops are pure fetch chains so they complete fine.
+   This module handles:
+     1. Unlocking AudioContext on first user gesture (required)
+     2. Browser Notification when scan completes in background tab
+     3. Page title badge showing scan progress when tab is not active
+══════════════════════════════════════════════════════════════ */
+
+// Unlock audio on first user interaction (required by browser autoplay policy)
+let _audioUnlocked = false;
+function ensureAudioUnlocked() {
+  if (_audioUnlocked) return;
+  _audioUnlocked = true;
+  try { getAudioCtx(); } catch(_) {}
+}
+document.addEventListener('click', ensureAudioUnlocked, { once: false });
+document.addEventListener('keydown', ensureAudioUnlocked, { once: false });
+
+// Request notification permission
+let _notifPermission = 'default';
+function requestNotifPermission() {
+  if (!('Notification' in window)) return;
+  if (Notification.permission === 'granted') { _notifPermission = 'granted'; return; }
+  if (Notification.permission !== 'denied') {
+    Notification.requestPermission().then(p => { _notifPermission = p; });
+  }
+}
+
+function sendNotification(title, body, iconColor) {
+  if (!('Notification' in window)) return;
+  if (Notification.permission !== 'granted') return;
+  // Only send if tab is not visible
+  if (!document.hidden) return;
+  try {
+    new Notification(title, {
+      body,
+      icon: `data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><rect width='64' height='64' fill='%23070a0f'/><text x='50%25' y='54%25' dominant-baseline='middle' text-anchor='middle' font-size='36' fill='${encodeURIComponent(iconColor)}'>◈</text></svg>`,
+      tag: 'cryptex-scan',
+      requireInteraction: false,
+    });
+  } catch(_) {}
+}
+
+// Page title badge — shows scanning progress when tab hidden
+let _origTitle = 'CRYPTEX — Market Intelligence Terminal';
+function setTitleBadge(text) {
+  if (text) document.title = `[${text}] ${_origTitle}`;
+  else document.title = _origTitle;
+}
+
+/* ── Unified scan hooks — call these around every fetch/scan ── */
+function onScanStart(label) {
+  ensureAudioUnlocked();
+  playStartSound();
+  setTitleBadge('⟳ ' + label);
+}
+
+function onScanComplete(label, notifBody) {
+  playDoneSound();
+  setTitleBadge(null);
+  sendNotification('✓ CRYPTEX — ' + label, notifBody || 'Scan complete. Click to view results.', '%2300e676');
+}
+
+function onScanError(label) {
+  playErrorSound();
+  setTitleBadge('⚠ FAILED');
+  setTimeout(() => setTitleBadge(null), 4000);
+  sendNotification('⚠ CRYPTEX — ' + label, 'Fetch failed. Check ticker or connection.', '%23ff3d57');
+}
+
+/* ══════════════════════════════════════════════════════════════
    INIT
 ══════════════════════════════════════════════════════════════ */
 function init() {
@@ -3200,6 +3401,7 @@ function init() {
   initSourceToggle();
   initScannerTabs();
   initSmcFilters();
+  requestNotifPermission();
 
   $('fetch-btn').addEventListener('click',fetchCoin);
   $('coin-input').addEventListener('keydown',e=>{if(e.key==='Enter')fetchCoin();});
