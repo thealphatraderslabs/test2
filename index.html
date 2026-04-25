@@ -4032,316 +4032,346 @@ const C = {
  * Returns array of {price, label, color, style, width, alpha, fillTop, fillBot, fillColor}
  */
 function buildChartLevels(data) {
-  const levels = [];
-  if(!data) return levels;
-
+  if(!data) return [];
   const { obs, fvgs, eqhEql, extStruct, pd, pivots, sdZones, confluence, currentPrice } = data;
 
-  // ── Order Blocks (filled rectangles) ──
-  if(obs) obs.forEach(ob => {
-    const isBull = ob.type === 'BULL_OB';
-    levels.push({
-      type: 'zone',
-      fillTop: ob.high,
-      fillBot: ob.low,
-      fillColor: isBull ? 'rgba(0,230,118,0.08)' : 'rgba(255,61,87,0.08)',
-      borderColor: isBull ? 'rgba(0,230,118,0.5)' : 'rgba(255,61,87,0.5)',
-      label: ob.inside ? (isBull?'⦿ BULL OB (INSIDE)':'⦿ BEAR OB (INSIDE)') : (ob.mitigated?(isBull?'BULL OB (MIT)':'BEAR OB (MIT)'):(isBull?'BULL OB':'BEAR OB')),
-      labelColor: isBull ? C.bull : C.bear,
-      price: (ob.high + ob.low) / 2,
-      alpha: ob.mitigated ? 0.3 : 1,
-      ztype: 'ob',
-    });
-  });
+  // Each level: { type:'zone'|'line', price, priority, ... }
+  // priority 1=highest (always shown), 5=lowest (first to drop)
+  const levels = [];
 
-  // ── FVGs (filled rectangles, slightly striped) ──
-  if(fvgs) fvgs.filter(f => f.fillStatus !== 'FILLED').forEach(f => {
-    const isBull = f.type === 'BULL_FVG';
-    levels.push({
-      type: 'zone',
-      fillTop: f.top,
-      fillBot: f.bot,
-      fillColor: isBull ? 'rgba(0,230,118,0.05)' : 'rgba(255,61,87,0.05)',
-      borderColor: isBull ? 'rgba(0,230,118,0.35)' : 'rgba(255,61,87,0.35)',
-      label: f.fillStatus === 'PARTIAL' ? (isBull?'FVG BULL (PARTIAL)':'FVG BEAR (PARTIAL)') : (isBull?'FVG BULL':'FVG BEAR'),
-      labelColor: isBull ? C.bull : C.bear,
-      price: (f.top + f.bot) / 2,
-      dashed: true,
-      ztype: 'fvg',
-    });
-  });
-
-  // ── Structure swing levels ──
-  if(extStruct) {
-    if(extStruct.lastHH) levels.push({type:'line',price:extStruct.lastHH.price,label:'HH',color:C.bull,style:'dashed',width:1,alpha:0.7});
-    if(extStruct.lastHL) levels.push({type:'line',price:extStruct.lastHL.price,label:'HL',color:C.bull,style:'dashed',width:1,alpha:0.6});
-    if(extStruct.lastLH) levels.push({type:'line',price:extStruct.lastLH.price,label:'LH',color:C.bear,style:'dashed',width:1,alpha:0.7});
-    if(extStruct.lastLL) levels.push({type:'line',price:extStruct.lastLL.price,label:'LL',color:C.bear,style:'dashed',width:1,alpha:0.6});
-    // BOS/MSS events
-    extStruct.events && extStruct.events.slice(-3).forEach(ev => {
-      const isBull = ev.dir === 'BULLISH';
-      levels.push({type:'line',price:ev.price,label:ev.type+' '+ev.dir,color:ev.type==='MSS'?C.orange:C.accent,style:'dotted',width:1.5,alpha:0.8});
-    });
-  }
-
-  // ── EQH/EQL (dashed horizontal lines) ──
-  if(eqhEql) {
-    eqhEql.eqHighs && eqhEql.eqHighs.filter(e=>!e.swept).forEach(e => {
-      levels.push({type:'line',price:e.level,label:`EQH ×${e.touches}`,color:C.bear,style:'dashed',width:1,alpha:0.6});
-    });
-    eqhEql.eqLows && eqhEql.eqLows.filter(e=>!e.swept).forEach(e => {
-      levels.push({type:'line',price:e.level,label:`EQL ×${e.touches}`,color:C.bull,style:'dashed',width:1,alpha:0.6});
-    });
-  }
-
-  // ── Premium/Discount Fibs ──
-  if(pd) {
-    pd.fibLevels && pd.fibLevels.forEach(f => {
-      const is618 = Math.abs(f.fib-0.618)<0.01, is382 = Math.abs(f.fib-0.382)<0.01, is5 = Math.abs(f.fib-0.5)<0.01;
-      levels.push({type:'line',price:f.price,label:'FIB '+f.label,color:is618||is382?C.gold:C.textDim,style:'dotted',width:is618||is382?1.5:0.8,alpha:is618||is382?0.8:0.4});
-    });
-    // Range boundaries
-    levels.push({type:'line',price:pd.swingHigh,label:'RANGE HIGH',color:C.bear,style:'solid',width:1,alpha:0.5});
-    levels.push({type:'line',price:pd.swingLow, label:'RANGE LOW', color:C.bull,style:'solid',width:1,alpha:0.5});
-  }
-
-  // ── Support/Resistance (single coin only) ──
-  if(pivots) {
-    const colMap = {resistance:C.bear, support:C.bull, pivot:C.accent};
-    pivots.forEach(p => {
-      levels.push({type:'line',price:p.price,label:p.tag+' '+fPrice(p.price),color:colMap[p.type]||C.textDim,style:'solid',width:0.8,alpha:0.45});
-    });
-  }
-
-  // ── Trade plan levels (entry/SL/TPs) ──
+  // ── TRADE PLAN (priority 1 — always shown) ──
   if(confluence && confluence.tradePlan) {
     const tp = confluence.tradePlan;
-    const isLong = tp.direction === 'LONG';
-    if(tp.entryZone) {
-      levels.push({type:'zone',fillTop:tp.entryZone.high,fillBot:tp.entryZone.low,fillColor:'rgba(0,212,255,0.08)',borderColor:C.accent,label:'ENTRY ZONE',labelColor:C.accent,price:tp.entryZone.mid,ztype:'trade'});
-    }
-    if(tp.slPrice) levels.push({type:'line',price:tp.slPrice,label:'SL',color:C.bear,style:'solid',width:2,alpha:1,trade:true});
-    if(tp.tp1)    levels.push({type:'line',price:tp.tp1,label:'TP1',color:C.bull,style:'solid',width:1.5,alpha:0.9,trade:true});
-    if(tp.tp2)    levels.push({type:'line',price:tp.tp2,label:'TP2',color:C.bull,style:'solid',width:1.5,alpha:0.75,trade:true});
-    if(tp.tp3)    levels.push({type:'line',price:tp.tp3,label:'TP3',color:C.bull,style:'solid',width:1.5,alpha:0.6,trade:true});
+    if(tp.entryZone) levels.push({ type:'zone', fillTop:tp.entryZone.high, fillBot:tp.entryZone.low,
+      fillColor:'rgba(0,212,255,0.07)', borderColor:C.accent,
+      label:'ENTRY', labelColor:C.accent, price:tp.entryZone.mid, priority:1, ztype:'trade' });
+    if(tp.slPrice)  levels.push({ type:'line', price:tp.slPrice, label:'SL', color:C.bear,  style:'solid', width:1.5, alpha:1,   priority:1, trade:true });
+    if(tp.tp1)      levels.push({ type:'line', price:tp.tp1,    label:'TP1', color:C.bull,  style:'solid', width:1.5, alpha:0.95, priority:1, trade:true });
+    if(tp.tp2)      levels.push({ type:'line', price:tp.tp2,    label:'TP2', color:C.bull,  style:'solid', width:1,   alpha:0.75, priority:1, trade:true });
+    if(tp.tp3)      levels.push({ type:'line', price:tp.tp3,    label:'TP3', color:C.bull,  style:'solid', width:1,   alpha:0.6,  priority:1, trade:true });
   }
 
-  // ── Current price (always last so it renders on top) ──
-  if(currentPrice) {
-    levels.push({type:'line',price:currentPrice,label:'PRICE',color:C.accent,style:'solid',width:1.5,alpha:1,isPrice:true});
+  // ── CURRENT PRICE (priority 1) ──
+  if(currentPrice) levels.push({ type:'line', price:currentPrice, label:'', color:C.accent, style:'dashed', width:1, alpha:0.85, priority:1, isPrice:true });
+
+  // ── LAST MSS or BOS event (priority 2 — one event only, most recent) ──
+  if(extStruct && extStruct.lastEvent) {
+    const ev = extStruct.lastEvent;
+    levels.push({ type:'line', price:ev.price,
+      label: ev.type === 'MSS' ? 'MSS' : 'BOS',
+      color: ev.type === 'MSS' ? C.orange : C.accent,
+      style:'dotted', width:1.5, alpha:0.8, priority:2 });
+  }
+
+  // ── KEY SWING LEVELS: only last HH and last LL (priority 2) ──
+  // Only the two most structurally important points — not all four
+  if(extStruct) {
+    if(extStruct.lastHH && extStruct.bias==='BULLISH')
+      levels.push({ type:'line', price:extStruct.lastHH.price, label:'HH', color:C.bull, style:'dashed', width:1, alpha:0.6, priority:2 });
+    if(extStruct.lastLL && extStruct.bias==='BEARISH')
+      levels.push({ type:'line', price:extStruct.lastLL.price, label:'LL', color:C.bear, style:'dashed', width:1, alpha:0.6, priority:2 });
+    if(extStruct.lastHL && extStruct.bias==='BULLISH')
+      levels.push({ type:'line', price:extStruct.lastHL.price, label:'HL', color:'rgba(0,230,118,0.6)', style:'dashed', width:0.8, alpha:0.5, priority:3 });
+    if(extStruct.lastLH && extStruct.bias==='BEARISH')
+      levels.push({ type:'line', price:extStruct.lastLH.price, label:'LH', color:'rgba(255,61,87,0.6)', style:'dashed', width:0.8, alpha:0.5, priority:3 });
+  }
+
+  // ── ORDER BLOCKS — max 2 (most recent active, one bull one bear) (priority 2) ──
+  if(obs) {
+    const activeOBs = obs.filter(o => !o.mitigated);
+    const topBull = activeOBs.filter(o => o.type==='BULL_OB').sort((a,b) => b.idx-a.idx)[0];
+    const topBear = activeOBs.filter(o => o.type==='BEAR_OB').sort((a,b) => b.idx-a.idx)[0];
+    [topBull, topBear].filter(Boolean).forEach(ob => {
+      const isBull = ob.type === 'BULL_OB';
+      levels.push({ type:'zone',
+        fillTop: ob.high, fillBot: ob.low,
+        fillColor: isBull ? 'rgba(0,230,118,0.07)' : 'rgba(255,61,87,0.07)',
+        borderColor: isBull ? 'rgba(0,230,118,0.4)' : 'rgba(255,61,87,0.4)',
+        label: ob.inside ? (isBull?'BULL OB ●':'BEAR OB ●') : (isBull?'BULL OB':'BEAR OB'),
+        labelColor: isBull ? C.bull : C.bear,
+        price: (ob.high+ob.low)/2, priority:2, ztype:'ob' });
+    });
+  }
+
+  // ── FVGs — max 1 nearest unfilled (priority 3) ──
+  if(fvgs) {
+    const nearest = fvgs
+      .filter(f => f.fillStatus !== 'FILLED')
+      .sort((a,b) => Math.abs(a.distPct) - Math.abs(b.distPct))[0];
+    if(nearest) {
+      const isBull = nearest.type === 'BULL_FVG';
+      levels.push({ type:'zone',
+        fillTop: nearest.top, fillBot: nearest.bot,
+        fillColor: isBull ? 'rgba(0,230,118,0.04)' : 'rgba(255,61,87,0.04)',
+        borderColor: isBull ? 'rgba(0,230,118,0.3)' : 'rgba(255,61,87,0.3)',
+        label: nearest.fillStatus==='PARTIAL'?(isBull?'FVG ▲ PARTIAL':'FVG ▼ PARTIAL'):(isBull?'FVG ▲':'FVG ▼'),
+        labelColor: isBull ? C.bull : C.bear,
+        price:(nearest.top+nearest.bot)/2, priority:3, ztype:'fvg', dashed:true });
+    }
+  }
+
+  // ── EQH/EQL — max 1 each, nearest unswept (priority 3) ──
+  if(eqhEql) {
+    const nearEQH = (eqhEql.eqHighs||[]).filter(e=>!e.swept).sort((a,b)=>Math.abs(a.level-currentPrice)-Math.abs(b.level-currentPrice))[0];
+    const nearEQL = (eqhEql.eqLows||[]).filter(e=>!e.swept).sort((a,b)=>Math.abs(a.level-currentPrice)-Math.abs(b.level-currentPrice))[0];
+    if(nearEQH) levels.push({ type:'line', price:nearEQH.level, label:`EQH`, color:C.bear, style:'dashed', width:1, alpha:0.55, priority:3 });
+    if(nearEQL) levels.push({ type:'line', price:nearEQL.level, label:`EQL`, color:C.bull, style:'dashed', width:1, alpha:0.55, priority:3 });
+  }
+
+  // ── FIBS — only 0.5 (equilibrium) shown as a subtle reference (priority 4) ──
+  if(pd && pd.fibLevels) {
+    const eq = pd.fibLevels.find(f => Math.abs(f.fib-0.5)<0.01);
+    if(eq) levels.push({ type:'line', price:eq.price, label:'EQ 50%', color:'rgba(255,213,79,0.5)', style:'dotted', width:0.8, alpha:0.4, priority:4 });
+  }
+
+  // ── PIVOT POINT only (no R1-R3/S1-S3 spam) (priority 4) ──
+  if(pivots) {
+    const pp = pivots.find(p => p.type==='pivot');
+    if(pp) levels.push({ type:'line', price:pp.price, label:'PP', color:C.accent, style:'dotted', width:0.8, alpha:0.35, priority:4 });
   }
 
   return levels;
 }
 
 /**
- * drawChart — main render function
- * canvas: HTMLCanvasElement
- * candles: [{t,o,h,l,c,v}]
- * levels: from buildChartLevels()
+ * drawChart — clean renderer with collision-avoiding labels
  */
 function drawChart(canvas, candles, levels, opts={}) {
   if(!canvas||!candles||candles.length<2) return;
 
   const dpr = window.devicePixelRatio || 1;
-  const W = canvas.offsetWidth;
+  const W = canvas.offsetWidth  || 800;
   const H = canvas.offsetHeight || 380;
   canvas.width  = W * dpr;
   canvas.height = H * dpr;
   const ctx = canvas.getContext('2d');
   ctx.scale(dpr, dpr);
 
-  // Layout
-  const PAD_L = 70, PAD_R = 80, PAD_T = 20, PAD_B = 36;
+  // Layout: right panel wider for clean labels
+  const PAD_L = 58, PAD_R = 90, PAD_T = 16, PAD_B = 30;
   const chartW = W - PAD_L - PAD_R;
   const chartH = H - PAD_T - PAD_B;
 
-  // Price range — include all level prices so nothing is clipped
-  const allPrices = candles.flatMap(c=>[c.h,c.l]);
+  // ── PRICE RANGE ──
+  // Only use candle data for price range — do NOT include faraway level prices
+  // This prevents a single distant TP from squishing all candles to the bottom
+  let pMin = Math.min(...candles.map(c=>c.l));
+  let pMax = Math.max(...candles.map(c=>c.h));
+  // Gently expand to include trade levels if they're within 30% of candle range
+  const candleRange = pMax - pMin;
   levels.forEach(l => {
-    if(l.type==='line'&&l.price) allPrices.push(l.price);
-    if(l.type==='zone') { allPrices.push(l.fillTop); allPrices.push(l.fillBot); }
+    if(l.priority===1 && l.trade) {
+      if(l.price > pMax && l.price < pMax + candleRange*0.3) pMax = l.price;
+      if(l.price < pMin && l.price > pMin - candleRange*0.3) pMin = l.price;
+    }
+    if(l.type==='zone') {
+      if(l.fillTop < pMax + candleRange*0.3) pMax = Math.max(pMax, l.fillTop);
+      if(l.fillBot > pMin - candleRange*0.3) pMin = Math.min(pMin, l.fillBot);
+    }
   });
-  let pMin = Math.min(...allPrices), pMax = Math.max(...allPrices);
-  const pad = (pMax - pMin) * 0.08;
-  pMin -= pad; pMax += pad;
+  const padAmt = (pMax - pMin) * 0.06;
+  pMin -= padAmt; pMax += padAmt;
   const pRange = pMax - pMin;
-
-  const px = (p) => PAD_L + (allPrices.indexOf(p), ((p-pMin)/pRange) * chartH);
-  // y coordinate — inverted (high price = top)
   const py = p => PAD_T + chartH - ((p - pMin) / pRange) * chartH;
+  const pInView = p => p >= pMin && p <= pMax;
 
-  // Candle width
+  // Candle geometry
   const candleCount = candles.length;
   const slotW = chartW / candleCount;
-  const candleW = Math.max(1, slotW * 0.7);
+  const candleW = Math.max(1, Math.min(slotW * 0.72, 16));
   const cx = i => PAD_L + (i + 0.5) * slotW;
 
   // ── BACKGROUND ──
   ctx.fillStyle = C.bg;
   ctx.fillRect(0, 0, W, H);
 
-  // ── GRID LINES (horizontal) ──
-  const gridCount = 6;
-  ctx.strokeStyle = C.gridLine;
-  ctx.lineWidth = 0.5;
+  // ── HORIZONTAL GRID ──
+  const gridCount = 5;
+  ctx.setLineDash([]);
   for(let i=0;i<=gridCount;i++){
     const y = PAD_T + (chartH / gridCount) * i;
-    ctx.beginPath(); ctx.moveTo(PAD_L, y); ctx.lineTo(W-PAD_R, y); ctx.stroke();
-    // Price label
     const price = pMax - (pRange / gridCount) * i;
-    ctx.fillStyle = C.textDim;
-    ctx.font = `${Math.round(9*dpr)/dpr}px 'Share Tech Mono', monospace`;
+    ctx.strokeStyle = i===0||i===gridCount ? C.border : C.gridLine;
+    ctx.lineWidth = 0.5;
+    ctx.beginPath(); ctx.moveTo(PAD_L, y); ctx.lineTo(PAD_L+chartW, y); ctx.stroke();
+    ctx.fillStyle = '#2a3f5a';
+    ctx.font = `9px monospace`;
     ctx.textAlign = 'right';
     ctx.fillText(fPrice(price).replace('$',''), PAD_L - 4, y + 3);
   }
 
-  // ── VERTICAL GRID (every ~8 candles) ──
-  const vStep = Math.max(1, Math.floor(candleCount / 8));
-  ctx.strokeStyle = C.gridLine;
+  // ── VERTICAL GRID ──
+  const vStep = Math.max(1, Math.floor(candleCount / 6));
   for(let i=0;i<candleCount;i+=vStep){
     const x = cx(i);
+    ctx.strokeStyle = C.gridLine; ctx.lineWidth = 0.5;
     ctx.beginPath(); ctx.moveTo(x, PAD_T); ctx.lineTo(x, PAD_T+chartH); ctx.stroke();
-    // Time label
     if(candles[i]&&candles[i].t){
       const d = new Date(candles[i].t);
-      const lbl = `${d.getMonth()+1}/${d.getDate()} ${d.getHours().toString().padStart(2,'0')}:${d.getMinutes().toString().padStart(2,'0')}`;
-      ctx.fillStyle = C.textDim;
-      ctx.font = `${Math.round(8*dpr)/dpr}px 'Share Tech Mono', monospace`;
-      ctx.textAlign = 'center';
-      ctx.fillText(lbl, x, H - 8);
+      const mo = d.getMonth()+1, dy = d.getDate();
+      const hh = d.getHours().toString().padStart(2,'0'), mm = d.getMinutes().toString().padStart(2,'0');
+      const lbl = mm==='00' ? `${mo}/${dy}` : `${hh}:${mm}`;
+      ctx.fillStyle = '#2a3f5a'; ctx.font = `8px monospace`; ctx.textAlign = 'center';
+      ctx.fillText(lbl, x, H - 7);
     }
   }
 
-  // ── ZONE LEVELS (OBs, FVGs, trade zones — rendered before candles) ──
+  // ── ZONE LEVELS (OBs, FVGs) — drawn before candles, no labels here ──
   levels.filter(l=>l.type==='zone').forEach(lv => {
-    const yTop = py(lv.fillTop);
-    const yBot = py(lv.fillBot);
-    const zH = Math.abs(yBot - yTop);
+    if(!pInView(lv.fillTop)&&!pInView(lv.fillBot)&&!(lv.fillTop>pMax&&lv.fillBot<pMin)) return;
+    const yTop = Math.max(PAD_T, Math.min(PAD_T+chartH, py(lv.fillTop)));
+    const yBot = Math.max(PAD_T, Math.min(PAD_T+chartH, py(lv.fillBot)));
     const zY = Math.min(yTop, yBot);
+    const zH = Math.max(2, Math.abs(yBot - yTop));
 
-    // Fill
-    ctx.globalAlpha = lv.alpha != null ? lv.alpha : 0.6;
+    ctx.globalAlpha = 0.9;
     ctx.fillStyle = lv.fillColor;
-    if(lv.dashed) {
-      // Striped fill for FVGs
-      ctx.save();
-      ctx.beginPath(); ctx.rect(PAD_L, zY, chartW, Math.max(1,zH)); ctx.clip();
-      for(let sx=PAD_L;sx<PAD_L+chartW;sx+=6){
-        ctx.beginPath(); ctx.moveTo(sx, zY); ctx.lineTo(sx+3, zY+zH); ctx.strokeStyle=lv.fillColor; ctx.lineWidth=2; ctx.stroke();
-      }
-      ctx.restore();
-    } else {
-      ctx.fillRect(PAD_L, zY, chartW, Math.max(1,zH));
-    }
+    ctx.fillRect(PAD_L, zY, chartW, zH);
 
-    // Border lines (top + bottom)
-    ctx.globalAlpha = 0.7;
+    // Top border line only — clean, no bottom line clutter
+    ctx.globalAlpha = 0.5;
     ctx.strokeStyle = lv.borderColor;
     ctx.lineWidth = 1;
-    ctx.setLineDash([4,3]);
-    ctx.beginPath(); ctx.moveTo(PAD_L, py(lv.fillTop)); ctx.lineTo(W-PAD_R, py(lv.fillTop)); ctx.stroke();
-    ctx.beginPath(); ctx.moveTo(PAD_L, py(lv.fillBot)); ctx.lineTo(W-PAD_R, py(lv.fillBot)); ctx.stroke();
+    ctx.setLineDash([4,4]);
+    ctx.beginPath(); ctx.moveTo(PAD_L, py(lv.fillTop)); ctx.lineTo(PAD_L+chartW, py(lv.fillTop)); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(PAD_L, py(lv.fillBot)); ctx.lineTo(PAD_L+chartW, py(lv.fillBot)); ctx.stroke();
     ctx.setLineDash([]);
-
-    // Zone label
     ctx.globalAlpha = 1;
-    ctx.fillStyle = lv.labelColor;
-    ctx.font = `bold ${Math.round(9*dpr)/dpr}px 'Share Tech Mono', monospace`;
-    ctx.textAlign = 'right';
-    const midY = (py(lv.fillTop)+py(lv.fillBot))/2;
-    ctx.fillText(lv.label, W - PAD_R - 4, midY + 3);
   });
-  ctx.globalAlpha = 1;
 
   // ── CANDLES ──
   candles.forEach((c, i) => {
     const isBull = c.c >= c.o;
-    const bodyTop    = py(Math.max(c.o, c.c));
-    const bodyBot    = py(Math.min(c.o, c.c));
-    const bodyH      = Math.max(1, bodyBot - bodyTop);
-    const wickTop    = py(c.h);
-    const wickBot    = py(c.l);
-    const x          = cx(i);
-    const halfW      = candleW / 2;
-
-    const bodyColor  = isBull ? C.bull : C.bear;
-    const wickColor  = isBull ? 'rgba(0,230,118,0.7)' : 'rgba(255,61,87,0.7)';
+    const bodyTop = py(Math.max(c.o, c.c));
+    const bodyBot = py(Math.min(c.o, c.c));
+    const bodyH   = Math.max(1, bodyBot - bodyTop);
+    const x       = cx(i);
+    const hw      = candleW / 2;
 
     // Wick
-    ctx.strokeStyle = wickColor;
-    ctx.lineWidth = Math.max(0.5, candleW * 0.15);
-    ctx.beginPath();
-    ctx.moveTo(x, wickTop); ctx.lineTo(x, wickBot);
-    ctx.stroke();
+    ctx.strokeStyle = isBull ? 'rgba(0,230,118,0.65)' : 'rgba(255,61,87,0.65)';
+    ctx.lineWidth   = Math.max(0.5, candleW * 0.12);
+    ctx.beginPath(); ctx.moveTo(x, py(c.h)); ctx.lineTo(x, py(c.l)); ctx.stroke();
 
     // Body
     if(candleW >= 2) {
-      ctx.fillStyle = bodyColor;
-      ctx.globalAlpha = isBull ? 0.85 : 0.75;
-      ctx.fillRect(x - halfW, bodyTop, candleW, bodyH);
-      // Body border
-      ctx.strokeStyle = bodyColor;
-      ctx.lineWidth = 0.5;
+      ctx.fillStyle   = isBull ? C.bull : C.bear;
+      ctx.globalAlpha = isBull ? 0.82 : 0.72;
+      ctx.fillRect(x - hw, bodyTop, candleW, bodyH);
       ctx.globalAlpha = 1;
-      ctx.strokeRect(x - halfW, bodyTop, candleW, bodyH);
+      ctx.strokeStyle = isBull ? 'rgba(0,230,118,0.4)' : 'rgba(255,61,87,0.4)';
+      ctx.lineWidth   = 0.5;
+      ctx.strokeRect(x - hw, bodyTop, candleW, bodyH);
     } else {
-      // Too small — just draw a line
-      ctx.strokeStyle = bodyColor;
-      ctx.lineWidth = 1;
-      ctx.globalAlpha = 1;
+      ctx.strokeStyle = isBull ? C.bull : C.bear;
+      ctx.lineWidth = 1; ctx.globalAlpha = 1;
       ctx.beginPath(); ctx.moveTo(x, bodyTop); ctx.lineTo(x, bodyBot); ctx.stroke();
     }
     ctx.globalAlpha = 1;
   });
 
-  // ── LINE LEVELS (drawn after candles) ──
-  levels.filter(l=>l.type==='line').forEach(lv => {
-    if(!lv.price||lv.price<pMin||lv.price>pMax) return;
+  // ── LINE LEVELS ──
+  // Build a list of lines that are in view, then draw them
+  // Labels: collision-detected on right side with 13px minimum gap
+  const visibleLines = levels.filter(l =>
+    l.type==='line' && l.price && pInView(l.price)
+  ).sort((a,b) => (a.priority||5)-(b.priority||5));
+
+  // Draw lines first
+  visibleLines.forEach(lv => {
     const y = py(lv.price);
-    ctx.globalAlpha = lv.alpha || 0.7;
+    ctx.globalAlpha = lv.alpha || 0.65;
     ctx.strokeStyle = lv.color;
-    ctx.lineWidth = lv.width || 1;
+    ctx.lineWidth   = lv.width || 1;
+    if(lv.style==='dashed')      ctx.setLineDash([7,5]);
+    else if(lv.style==='dotted') ctx.setLineDash([2,4]);
+    else                          ctx.setLineDash([]);
+    ctx.beginPath(); ctx.moveTo(PAD_L, y); ctx.lineTo(PAD_L+chartW, y); ctx.stroke();
+    ctx.setLineDash([]); ctx.globalAlpha = 1;
+  });
 
-    if(lv.style==='dashed') ctx.setLineDash([6,4]);
-    else if(lv.style==='dotted') ctx.setLineDash([2,3]);
-    else ctx.setLineDash([]);
+  // Draw labels with collision avoidance
+  // Build occupied Y positions, starting empty
+  const occupiedY = [];
+  const MIN_GAP = 13; // px minimum between label centres
 
-    // Price line — blinking accent if current
+  const tryPlaceLabel = (wantedY) => {
+    // Find nearest free slot, searching up then down
+    let y = wantedY;
+    for(let attempt=0; attempt<20; attempt++){
+      const offset = attempt%2===0 ? Math.floor(attempt/2)*MIN_GAP : -Math.ceil(attempt/2)*MIN_GAP;
+      const candidate = wantedY + offset;
+      if(candidate < PAD_T+6 || candidate > PAD_T+chartH-2) continue;
+      const conflict = occupiedY.some(oy => Math.abs(oy-candidate)<MIN_GAP);
+      if(!conflict){ occupiedY.push(candidate); return candidate; }
+    }
+    return null; // can't place — skip label
+  };
+
+  // Sort by priority then by price descending so top labels get placed first
+  const labelLines = [...visibleLines].sort((a,b)=>{
+    if(a.priority!==b.priority) return (a.priority||5)-(b.priority||5);
+    return b.price-a.price;
+  });
+
+  labelLines.forEach(lv => {
     if(lv.isPrice) {
-      ctx.lineWidth = 1;
-      ctx.strokeStyle = C.accent;
-      ctx.globalAlpha = 0.9;
-      ctx.setLineDash([4,4]);
+      // Current price label always placed, right side with bg pill
+      const y = py(lv.price);
+      const placedY = tryPlaceLabel(y) ?? y;
+      const priceStr = fPrice(lv.price);
+      ctx.font = 'bold 10px monospace';
+      const tw = ctx.measureText(priceStr).width + 10;
+      // Background pill
+      ctx.fillStyle = C.accent;
+      ctx.globalAlpha = 0.15;
+      ctx.fillRect(PAD_L+chartW+1, placedY-7, tw, 13);
+      ctx.globalAlpha = 1;
+      ctx.strokeStyle = C.accent; ctx.lineWidth = 0.5;
+      ctx.strokeRect(PAD_L+chartW+1, placedY-7, tw, 13);
+      // Arrow + price
+      ctx.fillStyle = C.accent;
+      ctx.textAlign = 'left';
+      ctx.fillText('▶ '+priceStr, PAD_L+chartW+4, placedY+3);
+      return;
     }
 
-    ctx.beginPath();
-    ctx.moveTo(PAD_L, y); ctx.lineTo(W - PAD_R, y);
-    ctx.stroke();
-    ctx.setLineDash([]);
+    const y = py(lv.price);
+    const placedY = tryPlaceLabel(y);
+    if(placedY===null) return; // skip — too crowded
 
-    // Label on right side
+    const labelStr = lv.label ? `${lv.label}  ${fPrice(lv.price)}` : fPrice(lv.price);
+    ctx.fillStyle   = lv.color;
+    ctx.globalAlpha = Math.min(1, (lv.alpha||0.7) * 1.3);
+    ctx.font        = lv.trade ? 'bold 9.5px monospace' : '8.5px monospace';
+    ctx.textAlign   = 'left';
+    ctx.fillText(labelStr, PAD_L+chartW+4, placedY+3);
     ctx.globalAlpha = 1;
-    ctx.fillStyle = lv.color;
-    const fontSize = lv.trade ? 9.5 : lv.isPrice ? 10 : 8.5;
-    ctx.font = `${lv.trade||lv.isPrice?'bold ':''}${Math.round(fontSize*dpr)/dpr}px 'Share Tech Mono', monospace`;
-    ctx.textAlign = 'left';
-    const labelText = lv.isPrice ? `▶ ${fPrice(lv.price)}` : `${lv.label}  ${fPrice(lv.price)}`;
-    ctx.fillText(labelText, W - PAD_R + 3, y + 3);
   });
-  ctx.globalAlpha = 1;
+
+  // ── ZONE LABELS — also collision-detected, placed at zone midpoint ──
+  levels.filter(l=>l.type==='zone').forEach(lv => {
+    if(!pInView(lv.price)) return;
+    const midY = py(lv.price);
+    const placedY = tryPlaceLabel(midY);
+    if(placedY===null) return;
+    ctx.fillStyle   = lv.labelColor;
+    ctx.globalAlpha = 0.75;
+    ctx.font        = lv.ztype==='trade' ? 'bold 9px monospace' : '8px monospace';
+    ctx.textAlign   = 'left';
+    ctx.fillText(lv.label, PAD_L+chartW+4, placedY+3);
+    ctx.globalAlpha = 1;
+  });
 
   // ── CHART BORDER ──
-  ctx.strokeStyle = C.borderBrt;
-  ctx.lineWidth = 1;
-  ctx.setLineDash([]);
+  ctx.strokeStyle = C.border; ctx.lineWidth = 1; ctx.setLineDash([]);
   ctx.strokeRect(PAD_L, PAD_T, chartW, chartH);
 
   // ── WATERMARK ──
-  ctx.font = `bold ${Math.round(11*dpr)/dpr}px 'Orbitron', monospace`;
-  ctx.fillStyle = 'rgba(0,212,255,0.06)';
+  ctx.font = 'bold 13px monospace';
+  ctx.fillStyle = 'rgba(0,212,255,0.04)';
   ctx.textAlign = 'center';
-  ctx.fillText('CRYPTEX', W/2, H/2 + 6);
+  ctx.fillText('CRYPTEX', PAD_L + chartW/2, PAD_T + chartH/2 + 5);
 }
 
 /**
