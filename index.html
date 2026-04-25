@@ -4350,82 +4350,44 @@ const C = {
  */
 function buildChartLevels(data) {
   if(!data) return [];
-  const { obs, fvgs, eqhEql, extStruct, pd, pivots, sdZones, confluence, currentPrice } = data;
-
-  // Each level: { type:'zone'|'line', price, priority, ... }
-  // priority 1=highest (always shown), 5=lowest (first to drop)
-  // NOTE: Trade plan (SL/TP/Entry) intentionally excluded — chart shows only
-  //       levels from LEVEL VALIDATION & STATUS section for a clean chart.
+  const { extStruct, sdZones, pivots, currentPrice } = data;
   const levels = [];
 
-  // ── CURRENT PRICE (priority 1) ──
-  if(currentPrice) levels.push({ type:'line', price:currentPrice, label:'', color:C.accent, style:'dashed', width:1, alpha:0.85, priority:1, isPrice:true });
+  // ── CURRENT PRICE ──
+  if(currentPrice) levels.push({
+    type:'line', price:currentPrice, label:'', color:C.accent,
+    style:'dashed', width:1, alpha:0.9, priority:1, isPrice:true
+  });
 
-  // ── LAST MSS or BOS event (priority 2 — one event only, most recent) ──
-  if(extStruct && extStruct.lastEvent) {
-    const ev = extStruct.lastEvent;
-    levels.push({ type:'line', price:ev.price,
-      label: ev.type === 'MSS' ? 'MSS' : 'BOS',
-      color: ev.type === 'MSS' ? C.orange : C.accent,
-      style:'dotted', width:1.5, alpha:0.8, priority:2 });
-  }
-
-  // ── KEY SWING LEVELS: only last HH and last LL (priority 2) ──
-  // Only the two most structurally important points — not all four
+  // ── SWING HIGH (resistance) — last confirmed swing high ──
   if(extStruct) {
-    if(extStruct.lastHH && extStruct.bias==='BULLISH')
-      levels.push({ type:'line', price:extStruct.lastHH.price, label:'HH', color:C.bull, style:'dashed', width:1, alpha:0.6, priority:2 });
-    if(extStruct.lastLL && extStruct.bias==='BEARISH')
-      levels.push({ type:'line', price:extStruct.lastLL.price, label:'LL', color:C.bear, style:'dashed', width:1, alpha:0.6, priority:2 });
-    if(extStruct.lastHL && extStruct.bias==='BULLISH')
-      levels.push({ type:'line', price:extStruct.lastHL.price, label:'HL', color:'rgba(0,230,118,0.6)', style:'dashed', width:0.8, alpha:0.5, priority:3 });
-    if(extStruct.lastLH && extStruct.bias==='BEARISH')
-      levels.push({ type:'line', price:extStruct.lastLH.price, label:'LH', color:'rgba(255,61,87,0.6)', style:'dashed', width:0.8, alpha:0.5, priority:3 });
-  }
-
-  // ── ORDER BLOCKS — max 2 (most recent active, one bull one bear) (priority 2) ──
-  if(obs) {
-    const activeOBs = obs.filter(o => !o.mitigated);
-    const topBull = activeOBs.filter(o => o.type==='BULL_OB').sort((a,b) => b.idx-a.idx)[0];
-    const topBear = activeOBs.filter(o => o.type==='BEAR_OB').sort((a,b) => b.idx-a.idx)[0];
-    [topBull, topBear].filter(Boolean).forEach(ob => {
-      const isBull = ob.type === 'BULL_OB';
-      levels.push({ type:'zone',
-        fillTop: ob.high, fillBot: ob.low,
-        fillColor: isBull ? 'rgba(0,230,118,0.07)' : 'rgba(255,61,87,0.07)',
-        borderColor: isBull ? 'rgba(0,230,118,0.4)' : 'rgba(255,61,87,0.4)',
-        label: ob.inside ? (isBull?'BULL OB ●':'BEAR OB ●') : (isBull?'BULL OB':'BEAR OB'),
-        labelColor: isBull ? C.bull : C.bear,
-        price: (ob.high+ob.low)/2, priority:2, ztype:'ob' });
+    const sh = extStruct.lastHH || extStruct.lastLH;
+    const sl = extStruct.lastHL || extStruct.lastLL;
+    if(sh) levels.push({
+      type:'line', price:sh.price, label:'Swing High',
+      color:'rgba(255,61,87,0.85)', style:'solid', width:1, alpha:0.75, priority:2
+    });
+    if(sl) levels.push({
+      type:'line', price:sl.price, label:'Swing Low',
+      color:'rgba(0,230,118,0.85)', style:'solid', width:1, alpha:0.75, priority:2
     });
   }
 
-  // ── FVGs — max 1 nearest unfilled (priority 3) ──
-  if(fvgs) {
-    const nearest = fvgs
-      .filter(f => f.fillStatus !== 'FILLED')
-      .sort((a,b) => Math.abs(a.distPct) - Math.abs(b.distPct))[0];
-    if(nearest) {
-      const isBull = nearest.type === 'BULL_FVG';
-      levels.push({ type:'zone',
-        fillTop: nearest.top, fillBot: nearest.bot,
-        fillColor: isBull ? 'rgba(0,230,118,0.04)' : 'rgba(255,61,87,0.04)',
-        borderColor: isBull ? 'rgba(0,230,118,0.3)' : 'rgba(255,61,87,0.3)',
-        label: nearest.fillStatus==='PARTIAL'?(isBull?'FVG ▲ PARTIAL':'FVG ▼ PARTIAL'):(isBull?'FVG ▲':'FVG ▼'),
-        labelColor: isBull ? C.bull : C.bear,
-        price:(nearest.top+nearest.bot)/2, priority:3, ztype:'fvg', dashed:true });
-    }
+  // ── SUPPORT & RESISTANCE from S/D zones (max 2 nearest) ──
+  if(sdZones && currentPrice) {
+    const res = sdZones.filter(z => (z.top+z.bot)/2 > currentPrice)
+      .sort((a,b) => (a.top+a.bot)/2 - (b.top+b.bot)/2)[0];
+    const sup = sdZones.filter(z => (z.top+z.bot)/2 < currentPrice)
+      .sort((a,b) => (b.top+b.bot)/2 - (a.top+a.bot)/2)[0];
+    if(res) levels.push({
+      type:'line', price:(res.top+res.bot)/2, label:'Resistance',
+      color:'rgba(255,61,87,0.7)', style:'dashed', width:1, alpha:0.6, priority:3
+    });
+    if(sup) levels.push({
+      type:'line', price:(sup.top+sup.bot)/2, label:'Support',
+      color:'rgba(0,230,118,0.7)', style:'dashed', width:1, alpha:0.6, priority:3
+    });
   }
-
-  // ── EQH/EQL — max 1 each, nearest unswept (priority 3) ──
-  if(eqhEql) {
-    const nearEQH = (eqhEql.eqHighs||[]).filter(e=>!e.swept).sort((a,b)=>Math.abs(a.level-currentPrice)-Math.abs(b.level-currentPrice))[0];
-    const nearEQL = (eqhEql.eqLows||[]).filter(e=>!e.swept).sort((a,b)=>Math.abs(a.level-currentPrice)-Math.abs(b.level-currentPrice))[0];
-    if(nearEQH) levels.push({ type:'line', price:nearEQH.level, label:`EQH`, color:C.bear, style:'dashed', width:1, alpha:0.55, priority:3 });
-    if(nearEQL) levels.push({ type:'line', price:nearEQL.level, label:`EQL`, color:C.bull, style:'dashed', width:1, alpha:0.55, priority:3 });
-  }
-
-  // Pivot Point removed — chart shows only validation-section levels.
 
   return levels;
 }
@@ -4449,24 +4411,10 @@ function drawChart(canvas, candles, levels, opts={}) {
   const chartW = W - PAD_L - PAD_R;
   const chartH = H - PAD_T - PAD_B;
 
-  // ── PRICE RANGE ──
-  // Only use candle data for price range — do NOT include faraway level prices
-  // This prevents a single distant TP from squishing all candles to the bottom
+  // ── PRICE RANGE — candle data only, clean padding ──
   let pMin = Math.min(...candles.map(c=>c.l));
   let pMax = Math.max(...candles.map(c=>c.h));
-  // Gently expand to include trade levels if they're within 30% of candle range
-  const candleRange = pMax - pMin;
-  levels.forEach(l => {
-    if(l.priority===1 && l.trade) {
-      if(l.price > pMax && l.price < pMax + candleRange*0.3) pMax = l.price;
-      if(l.price < pMin && l.price > pMin - candleRange*0.3) pMin = l.price;
-    }
-    if(l.type==='zone') {
-      if(l.fillTop < pMax + candleRange*0.3) pMax = Math.max(pMax, l.fillTop);
-      if(l.fillBot > pMin - candleRange*0.3) pMin = Math.min(pMin, l.fillBot);
-    }
-  });
-  const padAmt = (pMax - pMin) * 0.06;
+  const padAmt = (pMax - pMin) * 0.08;
   pMin -= padAmt; pMax += padAmt;
   const pRange = pMax - pMin;
   const py = p => PAD_T + chartH - ((p - pMin) / pRange) * chartH;
@@ -4513,28 +4461,21 @@ function drawChart(canvas, candles, levels, opts={}) {
     }
   }
 
-  // ── ZONE LEVELS (OBs, FVGs) — drawn before candles, no labels here ──
-  levels.filter(l=>l.type==='zone').forEach(lv => {
-    if(!pInView(lv.fillTop)&&!pInView(lv.fillBot)&&!(lv.fillTop>pMax&&lv.fillBot<pMin)) return;
-    const yTop = Math.max(PAD_T, Math.min(PAD_T+chartH, py(lv.fillTop)));
-    const yBot = Math.max(PAD_T, Math.min(PAD_T+chartH, py(lv.fillBot)));
-    const zY = Math.min(yTop, yBot);
-    const zH = Math.max(2, Math.abs(yBot - yTop));
+  // No zone overlays — chart kept clean (candles, swing dots, S/R lines only)
 
-    ctx.globalAlpha = 0.9;
-    ctx.fillStyle = lv.fillColor;
-    ctx.fillRect(PAD_L, zY, chartW, zH);
-
-    // Top border line only — clean, no bottom line clutter
-    ctx.globalAlpha = 0.5;
-    ctx.strokeStyle = lv.borderColor;
-    ctx.lineWidth = 1;
-    ctx.setLineDash([4,4]);
-    ctx.beginPath(); ctx.moveTo(PAD_L, py(lv.fillTop)); ctx.lineTo(PAD_L+chartW, py(lv.fillTop)); ctx.stroke();
-    ctx.beginPath(); ctx.moveTo(PAD_L, py(lv.fillBot)); ctx.lineTo(PAD_L+chartW, py(lv.fillBot)); ctx.stroke();
-    ctx.setLineDash([]);
-    ctx.globalAlpha = 1;
-  });
+  // ── DETECT SWING POINTS ON VISIBLE CANDLES (strength 2) ──
+  const swingHighIdx = new Set(), swingLowIdx = new Set();
+  const SWG = 2;
+  for(let i = SWG; i < candles.length - SWG; i++) {
+    let isH = true, isL = true;
+    for(let j = i-SWG; j <= i+SWG; j++) {
+      if(j===i) continue;
+      if(candles[j].h >= candles[i].h) isH = false;
+      if(candles[j].l <= candles[i].l) isL = false;
+    }
+    if(isH) swingHighIdx.add(i);
+    if(isL) swingLowIdx.add(i);
+  }
 
   // ── CANDLES ──
   candles.forEach((c, i) => {
@@ -4546,25 +4487,50 @@ function drawChart(canvas, candles, levels, opts={}) {
     const hw      = candleW / 2;
 
     // Wick
-    ctx.strokeStyle = isBull ? 'rgba(0,230,118,0.65)' : 'rgba(255,61,87,0.65)';
+    ctx.strokeStyle = isBull ? 'rgba(0,230,118,0.6)' : 'rgba(255,61,87,0.6)';
     ctx.lineWidth   = Math.max(0.5, candleW * 0.12);
     ctx.beginPath(); ctx.moveTo(x, py(c.h)); ctx.lineTo(x, py(c.l)); ctx.stroke();
 
     // Body
     if(candleW >= 2) {
       ctx.fillStyle   = isBull ? C.bull : C.bear;
-      ctx.globalAlpha = isBull ? 0.82 : 0.72;
+      ctx.globalAlpha = isBull ? 0.85 : 0.75;
       ctx.fillRect(x - hw, bodyTop, candleW, bodyH);
       ctx.globalAlpha = 1;
-      ctx.strokeStyle = isBull ? 'rgba(0,230,118,0.4)' : 'rgba(255,61,87,0.4)';
+      ctx.strokeStyle = isBull ? 'rgba(0,230,118,0.35)' : 'rgba(255,61,87,0.35)';
       ctx.lineWidth   = 0.5;
       ctx.strokeRect(x - hw, bodyTop, candleW, bodyH);
     } else {
       ctx.strokeStyle = isBull ? C.bull : C.bear;
-      ctx.lineWidth = 1; ctx.globalAlpha = 1;
+      ctx.lineWidth = 1;
       ctx.beginPath(); ctx.moveTo(x, bodyTop); ctx.lineTo(x, bodyBot); ctx.stroke();
     }
     ctx.globalAlpha = 1;
+  });
+
+  // ── SWING POINT DOTS — drawn above candles ──
+  const dotR = Math.max(2.5, Math.min(4, candleW * 0.5));
+  const DOT_GAP = 5; // px gap between wick tip and dot
+  candles.forEach((c, i) => {
+    const x = cx(i);
+    if(swingHighIdx.has(i)) {
+      const dotY = py(c.h) - DOT_GAP - dotR;
+      ctx.beginPath();
+      ctx.arc(x, dotY, dotR, 0, Math.PI*2);
+      ctx.fillStyle = 'rgba(255,61,87,0.9)';
+      ctx.globalAlpha = 0.85;
+      ctx.fill();
+      ctx.globalAlpha = 1;
+    }
+    if(swingLowIdx.has(i)) {
+      const dotY = py(c.l) + DOT_GAP + dotR;
+      ctx.beginPath();
+      ctx.arc(x, dotY, dotR, 0, Math.PI*2);
+      ctx.fillStyle = 'rgba(0,230,118,0.9)';
+      ctx.globalAlpha = 0.85;
+      ctx.fill();
+      ctx.globalAlpha = 1;
+    }
   });
 
   // ── LINE LEVELS ──
@@ -4646,19 +4612,7 @@ function drawChart(canvas, candles, levels, opts={}) {
     ctx.globalAlpha = 1;
   });
 
-  // ── ZONE LABELS — also collision-detected, placed at zone midpoint ──
-  levels.filter(l=>l.type==='zone').forEach(lv => {
-    if(!pInView(lv.price)) return;
-    const midY = py(lv.price);
-    const placedY = tryPlaceLabel(midY);
-    if(placedY===null) return;
-    ctx.fillStyle   = lv.labelColor;
-    ctx.globalAlpha = 0.75;
-    ctx.font        = lv.ztype==='trade' ? 'bold 9px monospace' : '8px monospace';
-    ctx.textAlign   = 'left';
-    ctx.fillText(lv.label, PAD_L+chartW+4, placedY+3);
-    ctx.globalAlpha = 1;
-  });
+
 
   // ── CHART BORDER ──
   ctx.strokeStyle = C.border; ctx.lineWidth = 1; ctx.setLineDash([]);
@@ -4675,20 +4629,16 @@ function drawChart(canvas, candles, levels, opts={}) {
  * buildLegend — returns HTML for legend items
  */
 function buildLegend(levels) {
-  const seen = new Set();
-  const items = [];
-  const add = (color, label) => {
-    if(!seen.has(label)){ seen.add(label); items.push({color,label}); }
-  };
-  add(C.bull,   '● BULL CANDLE');
-  add(C.bear,   '● BEAR CANDLE');
-  if(levels.some(l=>l.ztype==='ob'))      add(C.bull, '▬ ORDER BLOCK');
-  if(levels.some(l=>l.ztype==='fvg'))     add(C.orange,'▬ FVG');
-  if(levels.some(l=>l.label&&(l.label.startsWith('HH')||l.label?.startsWith('HL')))) add(C.bull,'── STRUCTURE');
-  if(levels.some(l=>l.label&&(l.label.startsWith('BOS')||l.label?.startsWith('MSS')))) add(C.accent,'⋯ BOS/MSS');
-  if(levels.some(l=>l.label&&(l.label.startsWith('EQH')||l.label?.startsWith('EQL')))) add(C.bear,'-- EQH/EQL');
-  if(levels.some(l=>l.label&&l.label.startsWith('PRICE'))) add(C.accent,'-- PRICE');
-  return items.map(it=>`<span class="chart-legend-item"><span class="chart-legend-dot" style="background:${it.color};"></span>${it.label}</span>`).join('');
+  const items = [
+    { color: C.bull,                    label: '● BULL CANDLE' },
+    { color: C.bear,                    label: '● BEAR CANDLE' },
+    { color: 'rgba(255,61,87,0.9)',     label: '● SWING HIGH' },
+    { color: 'rgba(0,230,118,0.9)',     label: '● SWING LOW' },
+    { color: 'rgba(255,61,87,0.7)',     label: '── RESISTANCE' },
+    { color: 'rgba(0,230,118,0.7)',     label: '── SUPPORT' },
+    { color: C.accent,                  label: '⋯ PRICE' },
+  ];
+  return items.map(it=>`<span class="chart-legend-item"><span class="chart-legend-dot" style="background:${it.color};border-radius:50%;"></span>${it.label}</span>`).join('');
 }
 
 /**
