@@ -698,6 +698,58 @@ body {
   .tsc-header { flex-direction:column; align-items:flex-start; }
 }
 
+/* ── SMC MARKET SCAN ENHANCED CARD STYLES ── */
+
+.conf-score-bar-outer { height:5px; background:var(--border); border-radius:3px; margin:8px 0 6px; overflow:hidden; }
+.conf-score-bar-inner { height:100%; border-radius:3px; transition:width 0.6s ease; }
+.conf-score-bar-inner.elite { background:linear-gradient(90deg,var(--gold),var(--bull)); }
+.conf-score-bar-inner.high  { background:var(--bull); }
+.conf-score-bar-inner.mid   { background:var(--orange); }
+.conf-score-bar-inner.low   { background:var(--bear-dim); }
+
+.conf-score-label { display:flex; align-items:baseline; gap:6px; margin-bottom:4px; }
+.conf-score-num { font-family:var(--font-display); font-size:1.3rem; font-weight:900; letter-spacing:1px; line-height:1; }
+.conf-score-num.elite { color:var(--gold); }
+.conf-score-num.high  { color:var(--bull); }
+.conf-score-num.mid   { color:var(--orange); }
+.conf-score-num.low   { color:var(--text-secondary); }
+.conf-score-max { font-family:var(--font-mono); font-size:0.6rem; color:var(--text-dim); }
+.conf-score-tier { margin-left:auto; font-family:var(--font-mono); font-size:0.6rem; letter-spacing:2px; padding:2px 8px; border-radius:2px; }
+.conf-score-tier.elite { background:rgba(255,213,79,0.15); color:var(--gold); border:1px solid rgba(255,213,79,0.3); }
+.conf-score-tier.high  { background:var(--bull-glow); color:var(--bull); border:1px solid rgba(0,230,118,0.3); }
+.conf-score-tier.mid   { background:var(--orange-dim); color:var(--orange); border:1px solid rgba(255,152,0,0.3); }
+.conf-score-tier.low   { background:var(--bg-elevated); color:var(--text-dim); border:1px solid var(--border); }
+
+.pillar-row { display:flex; flex-wrap:wrap; gap:4px; margin:6px 0; }
+.pillar-badge { font-family:var(--font-mono); font-size:0.52rem; letter-spacing:0.5px; padding:3px 7px; border-radius:2px; white-space:nowrap; border:1px solid transparent; }
+.pillar-badge.fired-bull { background:rgba(0,230,118,0.1); color:var(--bull); border-color:rgba(0,230,118,0.25); }
+.pillar-badge.fired-bear { background:rgba(255,61,87,0.1); color:var(--bear); border-color:rgba(255,61,87,0.25); }
+.pillar-badge.fired-gold { background:rgba(255,213,79,0.1); color:var(--gold); border-color:rgba(255,213,79,0.25); }
+.pillar-badge.fired-acc  { background:rgba(0,212,255,0.08); color:var(--accent); border-color:rgba(0,212,255,0.2); }
+.pillar-badge.dim        { background:transparent; color:var(--text-dim); border-color:var(--border); opacity:0.45; }
+
+.smc-scan-card { background:var(--bg-card); border:1px solid var(--border); border-radius:var(--radius-lg); padding:14px; cursor:pointer; transition:all 0.2s ease; position:relative; overflow:hidden; display:flex; flex-direction:column; }
+.smc-scan-card::before { content:''; position:absolute; top:0; left:0; right:0; height:2px; }
+.smc-scan-card.long-setup::before { background:var(--bull); }
+.smc-scan-card.short-setup::before { background:var(--bear); }
+.smc-scan-card.watch-setup::before { background:var(--orange); }
+.smc-scan-card.elite-setup { box-shadow:0 0 0 1px rgba(255,213,79,0.2),0 4px 20px rgba(255,213,79,0.06); }
+.smc-scan-card.elite-setup::before { background:linear-gradient(90deg,var(--gold),var(--bull),var(--gold)); }
+.smc-scan-card:hover { border-color:var(--border-bright); transform:translateY(-1px); box-shadow:0 6px 24px rgba(0,0,0,0.4); }
+
+.ssc-top { display:flex; align-items:center; justify-content:space-between; margin-bottom:6px; }
+.ssc-price-row { display:flex; align-items:baseline; justify-content:space-between; margin-bottom:4px; }
+.ssc-price { font-family:var(--font-mono); font-size:0.9rem; color:var(--text-primary); }
+.ssc-change { font-family:var(--font-mono); font-size:0.72rem; }
+.ssc-divider { height:1px; background:var(--border); margin:8px 0; }
+.ssc-data-grid { display:grid; grid-template-columns:1fr 1fr; gap:4px 8px; margin-bottom:6px; }
+.ssc-data-item { display:flex; flex-direction:column; gap:1px; }
+.ssc-data-label { font-family:var(--font-mono); font-size:0.52rem; color:var(--text-dim); letter-spacing:0.5px; }
+.ssc-data-value { font-family:var(--font-mono); font-size:0.68rem; letter-spacing:0.5px; }
+.ssc-reason { font-family:var(--font-mono); font-size:0.6rem; color:var(--text-secondary); letter-spacing:0.3px; line-height:1.6; padding:6px 8px; background:var(--bg-elevated); border-radius:var(--radius); border:1px solid var(--border); margin-top:auto; }
+
+.smc-scan-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(300px,1fr)); gap:10px; }
+
 .footer { display:flex; justify-content:space-between; align-items:center; padding:14px 24px; border-top:1px solid var(--border); margin-top:32px; font-family:var(--font-mono); font-size:0.6rem; color:var(--text-dim); letter-spacing:1px; }
 
 /* ── ANIMATIONS ── */
@@ -1107,9 +1159,12 @@ body {
       <button class="fetch-btn smc-btn" id="smc-market-fetch-btn"><span class="fetch-icon">⬡</span><span>SCAN SMC MARKET</span></button>
     </div>
     <div class="source-bar" id="smc-market-stats-bar" style="display:none;">
-      <span class="source-label">COINS SCANNED:</span><span class="source-badge" id="smc-scan-count">—</span>
-      <span class="source-label" style="margin-left:16px;">SETUPS FOUND:</span><span class="source-badge" id="smc-setups-count" style="color:var(--orange);">—</span>
-      <span class="source-label" style="margin-left:16px;">UPDATED:</span><span class="source-badge" id="smc-scan-updated">—</span>
+      <span class="source-label">SCANNED:</span><span class="source-badge" id="smc-scan-count">—</span>
+      <span class="source-label" style="margin-left:12px;">QUALIFIED:</span><span class="source-badge" id="smc-setups-count" style="color:var(--orange);">—</span>
+      <span class="source-label" style="margin-left:12px;">LONG:</span><span class="source-badge" id="smc-long-count" style="color:var(--bull);">—</span>
+      <span class="source-label" style="margin-left:12px;">SHORT:</span><span class="source-badge" id="smc-short-count" style="color:var(--bear);">—</span>
+      <span class="source-label" style="margin-left:12px;">AVG SCORE:</span><span class="source-badge" id="smc-avg-score" style="color:var(--gold);">—</span>
+      <span class="source-label" style="margin-left:12px;">UPDATED:</span><span class="source-badge" id="smc-scan-updated">—</span>
     </div>
     <div id="smc-market-progress" style="display:none;">
       <div class="scan-progress">
@@ -1132,6 +1187,13 @@ body {
         <button class="smc-filter-btn" data-filter="long">▲ LONG SETUPS</button>
         <button class="smc-filter-btn" data-filter="short">▼ SHORT SETUPS</button>
         <button class="smc-filter-btn" data-filter="watch">◉ WATCH LIST</button>
+        <button class="smc-filter-btn" data-filter="elite">★ ELITE (8+)</button>
+        <div style="margin-left:auto;display:flex;align-items:center;gap:8px;">
+          <span style="font-family:var(--font-mono);font-size:0.6rem;color:var(--text-dim);letter-spacing:1px;">SORT BY:</span>
+          <button class="smc-filter-btn active" id="sort-score" data-sort="score" style="border-color:var(--orange);color:var(--orange);">SCORE</button>
+          <button class="smc-filter-btn" id="sort-volume" data-sort="volume">VOLUME</button>
+          <button class="smc-filter-btn" id="sort-change" data-sort="change">24H CHANGE</button>
+        </div>
       </div>
       <div class="smc-scan-grid" id="smc-scan-cards"></div>
     </div>
@@ -1187,6 +1249,7 @@ const STATE = {
   scannerCategory: 'gainers',
   smcMarketData  : [],
   smcMarketFilter: 'all',
+  smcMarketSort  : 'score',
   fundingInterval: null,
   smcPriceInterval: null,
   currentPrice   : 0,
@@ -1317,11 +1380,19 @@ function initScannerTabs() {
 
 /* ── SMC FILTER BTNS ── */
 function initSmcFilters() {
-  document.querySelectorAll('.smc-filter-btn').forEach(btn=>{
+  document.querySelectorAll('.smc-filter-btn[data-filter]').forEach(btn=>{
     btn.addEventListener('click',()=>{
-      document.querySelectorAll('.smc-filter-btn').forEach(b=>b.classList.remove('active'));
+      document.querySelectorAll('.smc-filter-btn[data-filter]').forEach(b=>b.classList.remove('active'));
       btn.classList.add('active');
       STATE.smcMarketFilter=btn.dataset.filter;
+      renderSmcMarketCards();
+    });
+  });
+  document.querySelectorAll('.smc-filter-btn[data-sort]').forEach(btn=>{
+    btn.addEventListener('click',()=>{
+      document.querySelectorAll('.smc-filter-btn[data-sort]').forEach(b=>{b.classList.remove('active');b.style.borderColor='';b.style.color='';});
+      btn.classList.add('active'); btn.style.borderColor='var(--orange)'; btn.style.color='var(--orange)';
+      STATE.smcMarketSort=btn.dataset.sort;
       renderSmcMarketCards();
     });
   });
@@ -1988,88 +2059,383 @@ function buildConfluence(extStruct, intStruct, pd, currentPrice, obs, fvgs, tick
   else if(bearScore>bullScore){direction='WATCH_SHORT';idea=`Mild bearish confluence (${bearScore} vs ${bullScore}) — WATCH FOR SHORT SETUP`;}
   else{idea='No clear confluence — conflicting signals, STAND ASIDE';}
 
-  // ── BUILD FULL TRADE PLAN ──
+  // ══════════════════════════════════════════════════════
+  //  SMC-ANCHORED TRADE PLAN ENGINE
+  //  Every level (entry, SL, TP1/2/3, invalidation) is
+  //  derived from a real SMC level on the chart.
+  //  Zero RR multipliers used as primary logic.
+  //  RR is only *reported* for context, never to set levels.
+  // ══════════════════════════════════════════════════════
   let tradePlan=null;
   const isLong=direction==='LONG'||direction==='WATCH_LONG';
   const isShort=direction==='SHORT'||direction==='WATCH_SHORT';
   const isHighConf=direction==='LONG'||direction==='SHORT';
 
   if(isLong||isShort){
-    // Entry: best OB midpoint or current price if inside OB, else current price
-    let entryZone=null,entryReason='';
-    if(isLong&&bullOBsNear.length){
-      const bestOB=bullOBsNear.sort((a,b)=>Math.abs(a.distPct)-Math.abs(b.distPct))[0];
-      entryZone={low:bestOB.low,high:bestOB.high};
-      entryReason=`Bullish Order Block zone — demand area where institutional buy orders are expected`;
-    } else if(isShort&&bearOBsNear.length){
-      const bestOB=bearOBsNear.sort((a,b)=>Math.abs(a.distPct)-Math.abs(b.distPct))[0];
-      entryZone={low:bestOB.low,high:bestOB.high};
-      entryReason=`Bearish Order Block zone — supply area where institutional sell orders are expected`;
-    } else if(isLong&&bullFVGsNear.length){
-      const bestFVG=bullFVGsNear.sort((a,b)=>Math.abs(a.distPct)-Math.abs(b.distPct))[0];
-      entryZone={low:bestFVG.bot,high:bestFVG.top};
-      entryReason=`Bullish FVG (imbalance) — price returning to fill the gap creates a high-probability long entry`;
-    } else if(isShort&&bearFVGsNear.length){
-      const bestFVG=bearFVGsNear.sort((a,b)=>Math.abs(a.distPct)-Math.abs(b.distPct))[0];
-      entryZone={low:bestFVG.bot,high:bestFVG.top};
-      entryReason=`Bearish FVG (imbalance) — price returning to fill the gap creates a high-probability short entry`;
-    }
-    // If no OB/FVG, entry is at current price (market entry)
-    const entryPrice=entryZone?((entryZone.low+entryZone.high)/2):price;
-    const entryLow=entryZone?entryZone.low:price*0.999;
-    const entryHigh=entryZone?entryZone.high:price*1.001;
-    if(!entryReason) entryReason=isLong?'Market entry — no nearby OB/FVG, entering at current price with structure confirmation':'Market entry — no nearby OB/FVG, entering at current price with structure confirmation';
 
-    // SL: below last swing low (for longs) or above last swing high (for shorts)
-    let slPrice=null,slReason='';
+    // ── STEP 1: BUILD A SORTED MAP OF ALL SMC LEVELS ──
+    // Each level: { price, type, label, reason }
+    // We split them into levels ABOVE and BELOW current price
+    const allSmcLevels=[];
+
+    // Order Blocks
+    obs.filter(o=>!o.mitigated).forEach(o=>{
+      const mid=(o.high+o.low)/2;
+      allSmcLevels.push({
+        price:mid, zoneLow:o.low, zoneHigh:o.high,
+        type:o.type==='BULL_OB'?'BULL_OB':'BEAR_OB',
+        label:o.type==='BULL_OB'?'Bullish OB':'Bearish OB',
+        reason:o.type==='BULL_OB'
+          ?`Bullish Order Block (${fPrice(o.low)}–${fPrice(o.high)}) — institutional demand zone`
+          :`Bearish Order Block (${fPrice(o.low)}–${fPrice(o.high)}) — institutional supply zone`,
+      });
+    });
+
+    // FVGs (unfilled)
+    fvgs.filter(f=>f.fillStatus!=='FILLED').forEach(f=>{
+      const mid=(f.top+f.bot)/2;
+      allSmcLevels.push({
+        price:mid, zoneLow:f.bot, zoneHigh:f.top,
+        type:f.type==='BULL_FVG'?'BULL_FVG':'BEAR_FVG',
+        label:f.type==='BULL_FVG'?'Bullish FVG':'Bearish FVG',
+        reason:f.type==='BULL_FVG'
+          ?`Bullish FVG imbalance (${fPrice(f.bot)}–${fPrice(f.top)}) — price tends to return to fill this gap`
+          :`Bearish FVG imbalance (${fPrice(f.bot)}–${fPrice(f.top)}) — price tends to return to fill this gap`,
+      });
+    });
+
+    // Structure swing levels from extStruct
+    if(extStruct.lastHH) allSmcLevels.push({price:extStruct.lastHH.price,zoneLow:extStruct.lastHH.price*0.999,zoneHigh:extStruct.lastHH.price*1.001,type:'HH',label:'Last HH',reason:`Last Higher High ${fPrice(extStruct.lastHH.price)} — structural resistance / BSL above`});
+    if(extStruct.lastHL) allSmcLevels.push({price:extStruct.lastHL.price,zoneLow:extStruct.lastHL.price*0.999,zoneHigh:extStruct.lastHL.price*1.001,type:'HL',label:'Last HL',reason:`Last Higher Low ${fPrice(extStruct.lastHL.price)} — structural support / key level for uptrend`});
+    if(extStruct.lastLH) allSmcLevels.push({price:extStruct.lastLH.price,zoneLow:extStruct.lastLH.price*0.999,zoneHigh:extStruct.lastLH.price*1.001,type:'LH',label:'Last LH',reason:`Last Lower High ${fPrice(extStruct.lastLH.price)} — structural resistance / key level for downtrend`});
+    if(extStruct.lastLL) allSmcLevels.push({price:extStruct.lastLL.price,zoneLow:extStruct.lastLL.price*0.999,zoneHigh:extStruct.lastLL.price*1.001,type:'LL',label:'Last LL',reason:`Last Lower Low ${fPrice(extStruct.lastLL.price)} — structural support / SSL below`});
+
+    // BOS/MSS event levels
+    extStruct.events.slice(-3).forEach(ev=>{
+      allSmcLevels.push({price:ev.price,zoneLow:ev.price*0.999,zoneHigh:ev.price*1.001,type:ev.type,label:`${ev.type} ${ev.dir}`,reason:`${ev.type} level ${fPrice(ev.price)} — ${ev.desc}`});
+    });
+
+    // EQH/EQL (liquidity pools) — only unswept
+    if(extStruct._eqhEql){
+      extStruct._eqhEql.eqHighs.filter(e=>!e.swept).forEach(e=>{
+        allSmcLevels.push({price:e.level,zoneLow:e.level*0.999,zoneHigh:e.level*1.001,type:'EQH',label:`EQH x${e.touches}`,reason:`Equal Highs ${fPrice(e.level)} — buy-side liquidity pool (${e.touches} touches), stops sitting above`});
+      });
+      extStruct._eqhEql.eqLows.filter(e=>!e.swept).forEach(e=>{
+        allSmcLevels.push({price:e.level,zoneLow:e.level*0.999,zoneHigh:e.level*1.001,type:'EQL',label:`EQL x${e.touches}`,reason:`Equal Lows ${fPrice(e.level)} — sell-side liquidity pool (${e.touches} touches), stops sitting below`});
+      });
+    }
+
+    // Premium/Discount fib levels
+    if(pd){
+      pd.fibLevels.forEach(f=>{
+        allSmcLevels.push({price:f.price,zoneLow:f.price*0.999,zoneHigh:f.price*1.001,type:'FIB',label:`Fib ${f.label}`,reason:`Fibonacci ${f.label} level ${fPrice(f.price)} within the swing range`});
+      });
+      // Range boundaries
+      allSmcLevels.push({price:pd.swingHigh,zoneLow:pd.swingHigh*0.999,zoneHigh:pd.swingHigh*1.001,type:'RANGE_HIGH',label:'Range High',reason:`Swing range high ${fPrice(pd.swingHigh)} — PREMIUM zone ceiling`});
+      allSmcLevels.push({price:pd.swingLow,zoneLow:pd.swingLow*0.999,zoneHigh:pd.swingLow*1.001,type:'RANGE_LOW',label:'Range Low',reason:`Swing range low ${fPrice(pd.swingLow)} — DISCOUNT zone floor`});
+    }
+
+    // Sort: levels below price (descending = closest first), levels above price (ascending = closest first)
+    const levelsAbove=allSmcLevels.filter(l=>l.price>price).sort((a,b)=>a.price-b.price);
+    const levelsBelow=allSmcLevels.filter(l=>l.price<price).sort((a,b)=>b.price-a.price);
+
+    // ── STEP 2: ENTRY ZONE ──
+    // LONG: look for the nearest bullish SMC level AT or slightly below current price (within 3%)
+    // SHORT: look for the nearest bearish SMC level AT or slightly above current price (within 3%)
+    let entryZone=null, entryReason='', entryType='MARKET';
+
     if(isLong){
-      const lastLL=extStruct.lastLL||extStruct.labeledLows?.[extStruct.labeledLows.length-1];
-      if(lastLL){slPrice=lastLL.price*0.997;slReason=`Below last swing low (${fPrice(lastLL.price)}) — a close below this invalidates the bullish structure entirely`;}
-      else{slPrice=entryLow*0.97;slReason='3% below entry zone — no clear swing low available, using fixed buffer';}
+      // Priority: price INSIDE a bull OB > nearest bull OB below (within 3%) > bull FVG below (within 3%) > last HL > current price
+      const insideOB=obs.filter(o=>!o.mitigated&&o.type==='BULL_OB'&&o.inside)[0];
+      const nearBullOB=bullOBsNear.sort((a,b)=>Math.abs(a.distPct)-Math.abs(b.distPct))[0];
+      const nearBullFVG=[...fvgs].filter(f=>f.type==='BULL_FVG'&&f.fillStatus!=='FILLED'&&f.distPct>-3&&f.distPct<1).sort((a,b)=>Math.abs(a.distPct)-Math.abs(b.distPct))[0];
+      if(insideOB){
+        entryZone={low:insideOB.low,high:insideOB.high,mid:(insideOB.low+insideOB.high)/2};
+        entryReason=`Price is currently INSIDE a Bullish OB (${fPrice(insideOB.low)}–${fPrice(insideOB.high)}) — institutional demand zone active right now`;
+        entryType='OB_INSIDE';
+      } else if(nearBullOB){
+        entryZone={low:nearBullOB.low,high:nearBullOB.high,mid:(nearBullOB.low+nearBullOB.high)/2};
+        entryReason=`Bullish Order Block at ${fPrice(nearBullOB.low)}–${fPrice(nearBullOB.high)} — wait for price to pull back into this demand zone, then enter on reaction (bullish candle close or wick rejection)`;
+        entryType='OB';
+      } else if(nearBullFVG){
+        entryZone={low:nearBullFVG.bot,high:nearBullFVG.top,mid:(nearBullFVG.bot+nearBullFVG.top)/2};
+        entryReason=`Bullish FVG imbalance (${fPrice(nearBullFVG.bot)}–${fPrice(nearBullFVG.top)}) — price returning to fill the gap is a high-probability entry`;
+        entryType='FVG';
+      } else if(extStruct.lastHL){
+        const hl=extStruct.lastHL;
+        entryZone={low:hl.price*0.998,high:hl.price*1.002,mid:hl.price};
+        entryReason=`Last Higher Low (HL) at ${fPrice(hl.price)} — key structural support in the bullish trend. Enter on a bullish reaction here.`;
+        entryType='HL';
+      } else {
+        entryZone={low:price*0.9985,high:price*1.0015,mid:price};
+        entryReason=`Current market price — no OB/FVG/HL nearby for a clean pullback entry. This is a momentum entry; wait for a confirmed bullish candle close.`;
+        entryType='MARKET';
+      }
     } else {
-      const lastHH=extStruct.lastHH||extStruct.labeledHighs?.[extStruct.labeledHighs.length-1];
-      if(lastHH){slPrice=lastHH.price*1.003;slReason=`Above last swing high (${fPrice(lastHH.price)}) — a close above this invalidates the bearish structure entirely`;}
-      else{slPrice=entryHigh*1.03;slReason='3% above entry zone — no clear swing high available, using fixed buffer';}
+      // SHORT entry priority
+      const insideOB=obs.filter(o=>!o.mitigated&&o.type==='BEAR_OB'&&o.inside)[0];
+      const nearBearOB=bearOBsNear.sort((a,b)=>Math.abs(a.distPct)-Math.abs(b.distPct))[0];
+      const nearBearFVG=[...fvgs].filter(f=>f.type==='BEAR_FVG'&&f.fillStatus!=='FILLED'&&f.distPct<3&&f.distPct>-1).sort((a,b)=>Math.abs(a.distPct)-Math.abs(b.distPct))[0];
+      if(insideOB){
+        entryZone={low:insideOB.low,high:insideOB.high,mid:(insideOB.low+insideOB.high)/2};
+        entryReason=`Price is currently INSIDE a Bearish OB (${fPrice(insideOB.low)}–${fPrice(insideOB.high)}) — institutional supply zone active right now`;
+        entryType='OB_INSIDE';
+      } else if(nearBearOB){
+        entryZone={low:nearBearOB.low,high:nearBearOB.high,mid:(nearBearOB.low+nearBearOB.high)/2};
+        entryReason=`Bearish Order Block at ${fPrice(nearBearOB.low)}–${fPrice(nearBearOB.high)} — wait for price to rally into this supply zone, then enter on reaction (bearish candle close or wick rejection)`;
+        entryType='OB';
+      } else if(nearBearFVG){
+        entryZone={low:nearBearFVG.bot,high:nearBearFVG.top,mid:(nearBearFVG.bot+nearBearFVG.top)/2};
+        entryReason=`Bearish FVG imbalance (${fPrice(nearBearFVG.bot)}–${fPrice(nearBearFVG.top)}) — price returning to fill the gap is a high-probability short entry`;
+        entryType='FVG';
+      } else if(extStruct.lastLH){
+        const lh=extStruct.lastLH;
+        entryZone={low:lh.price*0.998,high:lh.price*1.002,mid:lh.price};
+        entryReason=`Last Lower High (LH) at ${fPrice(lh.price)} — key structural resistance in the bearish trend. Enter on a bearish reaction here.`;
+        entryType='LH';
+      } else {
+        entryZone={low:price*0.9985,high:price*1.0015,mid:price};
+        entryReason=`Current market price — no OB/FVG/LH nearby for a clean pullback entry. This is a momentum entry; wait for a confirmed bearish candle close.`;
+        entryType='MARKET';
+      }
+    }
+    const entryPrice=entryZone.mid;
+
+    // ── STEP 3: STOP LOSS — always the nearest SMC invalidation level ──
+    // LONG SL: the nearest SMC support level BELOW the entry zone low
+    // SHORT SL: the nearest SMC resistance level ABOVE the entry zone high
+    // We pick the first meaningful level that, if broken, structurally kills the trade
+    let slPrice=null, slReason='', slType='';
+
+    if(isLong){
+      // Candidates below entry: HL (key support), LL (if broken = structure dead), OB low, FVG bottom, range low
+      // Priority: nearest bearish OB below entry > last HL > last LL > range low
+      const slCandidates=[];
+      // Last HL — most important: if broken, uptrend is over
+      if(extStruct.lastHL&&extStruct.lastHL.price<entryZone.low){
+        slCandidates.push({price:extStruct.lastHL.price*0.998,label:'Last HL',reason:`Candle CLOSE below Last Higher Low (${fPrice(extStruct.lastHL.price)}) — this destroys the Higher Low structure, confirming bearish takeover. The uptrend is structurally invalid.`,priority:10});
+      }
+      // Nearest bull OB low below entry (acts as the floor of the demand zone)
+      const nearOBBelow=obs.filter(o=>!o.mitigated&&o.type==='BULL_OB'&&o.low<entryZone.low).sort((a,b)=>b.low-a.low)[0];
+      if(nearOBBelow){
+        slCandidates.push({price:nearOBBelow.low*0.998,label:'Bull OB Low',reason:`Candle CLOSE below Bullish OB low (${fPrice(nearOBBelow.low)}) — order block fully mitigated from below, demand zone has failed`,priority:8});
+      }
+      // BOS level — if price closes below the last BOS level, the BOS is invalidated
+      const lastBullBOS=extStruct.events.slice().reverse().find(e=>e.type==='BOS'&&e.dir==='BULLISH');
+      if(lastBullBOS&&lastBullBOS.price<entryZone.low){
+        slCandidates.push({price:lastBullBOS.price*0.998,label:'BOS Level',reason:`Candle CLOSE below last Bullish BOS level (${fPrice(lastBullBOS.price)}) — the structural break that confirmed this uptrend is negated`,priority:7});
+      }
+      // EQL (sell-side liquidity) below entry — sweeping this and closing below = bearish
+      const nearEQL=allSmcLevels.filter(l=>l.type==='EQL'&&l.price<entryZone.low).sort((a,b)=>b.price-a.price)[0];
+      if(nearEQL){
+        slCandidates.push({price:nearEQL.price*0.998,label:'EQL (SSL)',reason:`Candle CLOSE below Equal Lows at ${fPrice(nearEQL.price)} — sell-side liquidity swept and rejected, bearish continuation expected`,priority:6});
+      }
+      // Last LL as absolute worst-case
+      if(extStruct.lastLL&&extStruct.lastLL.price<entryZone.low){
+        slCandidates.push({price:extStruct.lastLL.price*0.997,label:'Last LL',reason:`Candle CLOSE below Last Lower Low (${fPrice(extStruct.lastLL.price)}) — structural breakdown, new lows being made`,priority:5});
+      }
+      // Range low absolute floor
+      if(pd&&pd.swingLow<entryZone.low){
+        slCandidates.push({price:pd.swingLow*0.997,label:'Range Low',reason:`Candle CLOSE below swing Range Low (${fPrice(pd.swingLow)}) — full discount zone breached`,priority:4});
+      }
+
+      if(slCandidates.length){
+        // Pick highest priority, then among same priority pick the one closest to entry (tighter SL = less account risk)
+        slCandidates.sort((a,b)=>b.priority-a.priority||(b.price-a.price));
+        const best=slCandidates[0];
+        slPrice=best.price; slReason=best.reason; slType=best.label;
+      } else {
+        // Absolute fallback: use the OB low if we're in an OB, else nearest swing low below price
+        slPrice=entryZone.low*0.995;
+        slReason=`Below entry zone low (${fPrice(entryZone.low)}) — no distinct SMC invalidation level found below, using OB/entry zone bottom as floor`;
+        slType='ENTRY_FLOOR';
+      }
+    } else {
+      // SHORT SL candidates above entry
+      const slCandidates=[];
+      if(extStruct.lastLH&&extStruct.lastLH.price>entryZone.high){
+        slCandidates.push({price:extStruct.lastLH.price*1.002,label:'Last LH',reason:`Candle CLOSE above Last Lower High (${fPrice(extStruct.lastLH.price)}) — this breaks the Lower High structure, confirming bullish recovery. The downtrend is structurally invalid.`,priority:10});
+      }
+      const nearOBAbove=obs.filter(o=>!o.mitigated&&o.type==='BEAR_OB'&&o.high>entryZone.high).sort((a,b)=>a.high-b.high)[0];
+      if(nearOBAbove){
+        slCandidates.push({price:nearOBAbove.high*1.002,label:'Bear OB High',reason:`Candle CLOSE above Bearish OB high (${fPrice(nearOBAbove.high)}) — supply zone fully mitigated from above, sellers absorbed`,priority:8});
+      }
+      const lastBearBOS=extStruct.events.slice().reverse().find(e=>e.type==='BOS'&&e.dir==='BEARISH');
+      if(lastBearBOS&&lastBearBOS.price>entryZone.high){
+        slCandidates.push({price:lastBearBOS.price*1.002,label:'BOS Level',reason:`Candle CLOSE above last Bearish BOS level (${fPrice(lastBearBOS.price)}) — the structural break confirming this downtrend is negated`,priority:7});
+      }
+      const nearEQH=allSmcLevels.filter(l=>l.type==='EQH'&&l.price>entryZone.high).sort((a,b)=>a.price-b.price)[0];
+      if(nearEQH){
+        slCandidates.push({price:nearEQH.price*1.002,label:'EQH (BSL)',reason:`Candle CLOSE above Equal Highs at ${fPrice(nearEQH.price)} — buy-side liquidity swept, bullish continuation possible`,priority:6});
+      }
+      if(extStruct.lastHH&&extStruct.lastHH.price>entryZone.high){
+        slCandidates.push({price:extStruct.lastHH.price*1.003,label:'Last HH',reason:`Candle CLOSE above Last Higher High (${fPrice(extStruct.lastHH.price)}) — new highs being made, downtrend broken`,priority:5});
+      }
+      if(pd&&pd.swingHigh>entryZone.high){
+        slCandidates.push({price:pd.swingHigh*1.003,label:'Range High',reason:`Candle CLOSE above swing Range High (${fPrice(pd.swingHigh)}) — full premium zone breached`,priority:4});
+      }
+      if(slCandidates.length){
+        slCandidates.sort((a,b)=>b.priority-a.priority||(a.price-b.price));
+        const best=slCandidates[0];
+        slPrice=best.price; slReason=best.reason; slType=best.label;
+      } else {
+        slPrice=entryZone.high*1.005;
+        slReason=`Above entry zone high (${fPrice(entryZone.high)}) — no distinct SMC invalidation level found above, using OB/entry zone top as ceiling`;
+        slType='ENTRY_CEILING';
+      }
     }
 
-    // Risk percentage
-    const riskPct=slPrice?Math.abs((entryPrice-slPrice)/entryPrice*100):3;
+    const riskPct=Math.abs((entryPrice-slPrice)/entryPrice*100);
 
-    // TPs based on structure levels + fib
+    // ── STEP 4: TAKE PROFITS — always real SMC levels, ordered by distance ──
+    // LONG TPs: SMC levels ABOVE current price, ordered nearest → farthest
+    // SHORT TPs: SMC levels BELOW current price, ordered nearest → farthest
+    // Each TP must be a real level, not an RR calculation
     let tp1=null,tp2=null,tp3=null,tp1R='',tp2R='',tp3R='';
+    let tp1Type='',tp2Type='',tp3Type='';
+
     if(isLong){
-      // TP1: nearest swing high or 1.5x risk (1.5R)
-      const nearestHigh=extStruct.lastHH;
-      tp1=nearestHigh&&nearestHigh.price>entryPrice?nearestHigh.price*0.998:entryPrice*(1+riskPct/100*1.5);
-      tp1R=nearestHigh&&nearestHigh.price>entryPrice?`Last Higher High (${fPrice(nearestHigh.price)}) — first liquidity level above`:'1.5R reward — first profit target';
-      // TP2: 2.5R or next major resistance
-      tp2=entryPrice*(1+riskPct/100*2.5);
-      tp2R='2.5R reward — partial profits, trail SL to breakeven after TP1 hit';
-      // TP3: 4R or range high (premium zone)
-      tp3=pd?pd.swingHigh*0.995:entryPrice*(1+riskPct/100*4);
-      tp3R=pd?`Range high (${fPrice(pd.swingHigh)}) — full swing target, PREMIUM zone top`:'4R reward — full target, close entire position';
+      // All SMC levels above entry price, sorted nearest first
+      const tpCandidates=levelsAbove.filter(l=>l.price>entryPrice*1.001);
+
+      // Score and prioritise: liquidity pools (EQH, HH) score higher as magnets for price
+      const scored=tpCandidates.map(l=>{
+        let score=0;
+        if(l.type==='HH'||l.type==='EQH') score+=3;   // Liquidity above = price magnet
+        else if(l.type==='BEAR_OB') score+=2;           // Supply OB = natural TP
+        else if(l.type==='BEAR_FVG') score+=2;          // Imbalance above wants filling
+        else if(l.type==='LH') score+=1;
+        else if(l.type==='FIB') score+=1;
+        else if(l.type==='RANGE_HIGH') score+=2;
+        else if(l.type==='BOS'||l.type==='MSS') score+=1;
+        return {...l, score};
+      });
+
+      // TP1: nearest meaningful level above (prefer OB/FVG/EQH over random fib)
+      const tp1Cands=scored.sort((a,b)=>a.price-b.price);
+      if(tp1Cands[0]){
+        tp1=tp1Cands[0].zoneHigh?tp1Cands[0].zoneLow:tp1Cands[0].price; // enter TP just below the zone
+        tp1=tp1Cands[0].price*0.999;
+        tp1R=`${tp1Cands[0].label} at ${fPrice(tp1Cands[0].price)} — ${tp1Cands[0].reason}`;
+        tp1Type=tp1Cands[0].label;
+      }
+
+      // TP2: next level after TP1, skip anything within 0.5% of TP1
+      const tp2Cands=tp1Cands.filter(l=>l.price>tp1*(1.005));
+      if(tp2Cands[0]){
+        tp2=tp2Cands[0].price*0.999;
+        tp2R=`${tp2Cands[0].label} at ${fPrice(tp2Cands[0].price)} — ${tp2Cands[0].reason}`;
+        tp2Type=tp2Cands[0].label;
+      }
+
+      // TP3: farthest meaningful target — prefer Range High, EQH, or major HH
+      const tp3Cands=tp1Cands.filter(l=>l.price>tp2*(1.005)&&(l.type==='RANGE_HIGH'||l.type==='HH'||l.type==='EQH'||l.type==='BEAR_OB'||l.type==='FIB'));
+      if(tp3Cands.length){
+        const best=tp3Cands.sort((a,b)=>b.score-a.score)[0];
+        tp3=best.price*0.998;
+        tp3R=`${best.label} at ${fPrice(best.price)} — ${best.reason}`;
+        tp3Type=best.label;
+      } else if(pd){
+        tp3=pd.swingHigh*0.997;
+        tp3R=`Swing Range High at ${fPrice(pd.swingHigh)} — PREMIUM zone ceiling, full swing target`;
+        tp3Type='Range High';
+      }
+
+      // Fallback if no levels found: use closest EQH/HH
+      if(!tp1&&extStruct.lastHH&&extStruct.lastHH.price>entryPrice){
+        tp1=extStruct.lastHH.price*0.998;
+        tp1R=`Last Higher High ${fPrice(extStruct.lastHH.price)} — first liquidity cluster above, buy-stops sitting here`;
+        tp1Type='HH';
+      }
+      if(!tp1&&pd){
+        tp1=pd.fibLevels.find(f=>f.price>entryPrice)?.price||entryPrice*(1+riskPct/100*1.5);
+        tp1R=tp1?`Nearest Fibonacci level above — ${fPrice(tp1)}`:'No SMC level found above entry';
+        tp1Type='FIB';
+      }
     } else {
-      // TP1: nearest swing low or 1.5R
-      const nearestLow=extStruct.lastLL;
-      tp1=nearestLow&&nearestLow.price<entryPrice?nearestLow.price*1.002:entryPrice*(1-riskPct/100*1.5);
-      tp1R=nearestLow&&nearestLow.price<entryPrice?`Last Lower Low (${fPrice(nearestLow.price)}) — first liquidity level below`:'1.5R reward — first profit target';
-      tp2=entryPrice*(1-riskPct/100*2.5);
-      tp2R='2.5R reward — partial profits, trail SL to breakeven after TP1 hit';
-      tp3=pd?pd.swingLow*1.005:entryPrice*(1-riskPct/100*4);
-      tp3R=pd?`Range low (${fPrice(pd.swingLow)}) — full swing target, DISCOUNT zone bottom`:'4R reward — full target, close entire position';
+      // SHORT TPs: levels BELOW entry price
+      const tpCandidates=levelsBelow.filter(l=>l.price<entryPrice*0.999);
+      const scored=tpCandidates.map(l=>{
+        let score=0;
+        if(l.type==='LL'||l.type==='EQL') score+=3;    // Liquidity below = price magnet
+        else if(l.type==='BULL_OB') score+=2;           // Demand OB = natural TP for shorts
+        else if(l.type==='BULL_FVG') score+=2;          // Imbalance below wants filling
+        else if(l.type==='HL') score+=1;
+        else if(l.type==='FIB') score+=1;
+        else if(l.type==='RANGE_LOW') score+=2;
+        else if(l.type==='BOS'||l.type==='MSS') score+=1;
+        return {...l, score};
+      });
+
+      const tp1Cands=scored.sort((a,b)=>b.price-a.price);
+      if(tp1Cands[0]){
+        tp1=tp1Cands[0].price*1.001;
+        tp1R=`${tp1Cands[0].label} at ${fPrice(tp1Cands[0].price)} — ${tp1Cands[0].reason}`;
+        tp1Type=tp1Cands[0].label;
+      }
+      const tp2Cands=tp1Cands.filter(l=>l.price<tp1*(0.995));
+      if(tp2Cands[0]){
+        tp2=tp2Cands[0].price*1.001;
+        tp2R=`${tp2Cands[0].label} at ${fPrice(tp2Cands[0].price)} — ${tp2Cands[0].reason}`;
+        tp2Type=tp2Cands[0].label;
+      }
+      const tp3Cands=tp1Cands.filter(l=>l.price<tp2*(0.995)&&(l.type==='RANGE_LOW'||l.type==='LL'||l.type==='EQL'||l.type==='BULL_OB'||l.type==='FIB'));
+      if(tp3Cands.length){
+        const best=tp3Cands.sort((a,b)=>b.score-a.score)[0];
+        tp3=best.price*1.002;
+        tp3R=`${best.label} at ${fPrice(best.price)} — ${best.reason}`;
+        tp3Type=best.label;
+      } else if(pd){
+        tp3=pd.swingLow*1.003;
+        tp3R=`Swing Range Low at ${fPrice(pd.swingLow)} — DISCOUNT zone floor, full swing target`;
+        tp3Type='Range Low';
+      }
+      if(!tp1&&extStruct.lastLL&&extStruct.lastLL.price<entryPrice){
+        tp1=extStruct.lastLL.price*1.002;
+        tp1R=`Last Lower Low ${fPrice(extStruct.lastLL.price)} — first liquidity cluster below, sell-stops sitting here`;
+        tp1Type='LL';
+      }
+      if(!tp1&&pd){
+        tp1=pd.fibLevels.slice().reverse().find(f=>f.price<entryPrice)?.price||entryPrice*(1-riskPct/100*1.5);
+        tp1R=tp1?`Nearest Fibonacci level below — ${fPrice(tp1)}`:'No SMC level found below entry';
+        tp1Type='FIB';
+      }
     }
 
-    // Invalidation condition
-    const invalidation=isLong
-      ?`Candle CLOSE below ${fPrice(slPrice)} — this would break the last major swing low and confirm bearish structure. Exit immediately on close.`
-      :`Candle CLOSE above ${fPrice(slPrice)} — this would break the last major swing high and confirm bullish structure. Exit immediately on close.`;
+    // ── STEP 5: INVALIDATION — what candle close breaks the thesis entirely ──
+    // This is the SL level expressed as a SCENARIO, not just a number
+    let invalidation='';
+    if(isLong){
+      invalidation=`Candle CLOSE below ${fPrice(slPrice)} (${slType}) — ${slReason.replace(/^Candle CLOSE below .* — /,'')}. If this happens, the long thesis is dead — do not average down, exit the trade.`;
+    } else {
+      invalidation=`Candle CLOSE above ${fPrice(slPrice)} (${slType}) — ${slReason.replace(/^Candle CLOSE above .* — /,'')}. If this happens, the short thesis is dead — do not average up, exit the trade.`;
+    }
 
-    // Bias reasoning paragraph
+    // Also add a secondary invalidation (if structure changes before entry is hit)
+    let preEntryInvalidation='';
+    if(isLong&&entryType!=='OB_INSIDE'){
+      preEntryInvalidation=extStruct.lastHH
+        ?`If price breaks above ${fPrice(extStruct.lastHH.price)} (Last HH) BEFORE reaching the entry zone — structure has accelerated, consider entering at market with adjusted levels.`
+        :'';
+    } else if(isShort&&entryType!=='OB_INSIDE'){
+      preEntryInvalidation=extStruct.lastLL
+        ?`If price breaks below ${fPrice(extStruct.lastLL.price)} (Last LL) BEFORE reaching the entry zone — structure has accelerated, consider entering at market with adjusted levels.`
+        :'';
+    }
+
+    // ── STEP 6: COMPUTE RR RATIOS (for display only, not for setting levels) ──
+    const rrTp1=tp1?+(Math.abs((tp1-entryPrice)/entryPrice*100/riskPct)).toFixed(2):null;
+    const rrTp2=tp2?+(Math.abs((tp2-entryPrice)/entryPrice*100/riskPct)).toFixed(2):null;
+    const rrTp3=tp3?+(Math.abs((tp3-entryPrice)/entryPrice*100/riskPct)).toFixed(2):null;
+
+    // ── STEP 7: BIAS NARRATIVE ──
     const biasLines=[];
-    biasLines.push(`${ticker||'This coin'} is showing a ${extStruct.bias} external market structure with a sequence of ${extStruct.bias==='BULLISH'?'Higher Highs and Higher Lows':'Lower Lows and Lower Highs'}.`);
-    if(extStruct.lastEvent) biasLines.push(`The most recent structural event was a ${extStruct.lastEvent.type} ${extStruct.lastEvent.dir} at ${fPrice(extStruct.lastEvent.price)}, ${extStruct.lastEvent.desc}.`);
-    if(pd) biasLines.push(`Price is currently in the ${pd.zone} zone at ${pd.pct.toFixed(1)}% of the swing range — ${pd.zone==='DISCOUNT'?'a favourable location to look for longs':pd.zone==='PREMIUM'?'a favourable location to look for shorts':'a neutral location, ideally wait for price to reach a cleaner zone'}.`);
-    if(intStruct&&intStruct.bias!==extStruct.bias) biasLines.push(`Internal structure is showing ${intStruct.bias} bias — this indicates a pullback within the ${extStruct.bias} trend, which is the ideal entry timing.`);
+    biasLines.push(`${ticker||'This coin'} is showing a ${extStruct.bias} external market structure — ${extStruct.bias==='BULLISH'?'sequence of Higher Highs and Higher Lows confirming an uptrend':'sequence of Lower Lows and Lower Highs confirming a downtrend'}.`);
+    if(extStruct.lastEvent) biasLines.push(`Most recent structural event: ${extStruct.lastEvent.type} ${extStruct.lastEvent.dir} at ${fPrice(extStruct.lastEvent.price)} — ${extStruct.lastEvent.desc}.`);
+    if(pd) biasLines.push(`Price is in the ${pd.zone} zone (${pd.pct.toFixed(1)}% of the swing range from ${fPrice(pd.swingLow)} to ${fPrice(pd.swingHigh)}) — ${pd.zone==='DISCOUNT'?'this is a favourable location to seek longs':pd.zone==='PREMIUM'?'this is a favourable location to seek shorts':'neutral zone, wait for extreme location'}.`);
+    if(intStruct&&intStruct.bias!==extStruct.bias) biasLines.push(`Internal structure is ${intStruct.bias} — indicating a pullback within the ${extStruct.bias} trend. Ideal timing: wait for internal MSS back in the direction of the ${extStruct.bias} trend.`);
+    if(entryType==='OB_INSIDE') biasLines.push(`Price is currently inside the entry Order Block — this is an active setup. Monitor for a reaction candle (confirmation) before entering.`);
+    if(entryType==='MARKET') biasLines.push(`No clean pullback level identified on this timeframe. Consider dropping to a lower timeframe to find a more precise entry inside an OB or FVG.`);
 
     tradePlan={
       direction:isLong?'LONG':'SHORT',
@@ -2077,11 +2443,16 @@ function buildConfluence(extStruct, intStruct, pd, currentPrice, obs, fvgs, tick
       ticker:ticker||'—',
       tf:tf||'—',
       markPrice:price,
-      entryZone:{low:entryLow,high:entryHigh,mid:entryPrice},
+      entryZone,
       entryReason,
-      slPrice,slReason,riskPct,
-      tp1,tp1R,tp2,tp2R,tp3,tp3R,
+      entryType,
+      slPrice,slReason,slType,
+      riskPct,
+      tp1,tp1R,tp1Type,rrTp1,
+      tp2,tp2R,tp2Type,rrTp2,
+      tp3,tp3R,tp3Type,rrTp3,
       invalidation,
+      preEntryInvalidation,
       biasLines,
       bullScore,bearScore,
     };
@@ -2577,9 +2948,9 @@ function renderConfluence(confluence) {
 
   // Build copy text for clipboard
   const riskPct=tp.riskPct?tp.riskPct.toFixed(2):'~';
-  const tp1RR=tp.slPrice&&tp.tp1?Math.abs((tp.tp1-tp.entryZone.mid)/tp.entryZone.mid*100/tp.riskPct).toFixed(1):'—';
-  const tp2RR=tp.slPrice&&tp.tp2?Math.abs((tp.tp2-tp.entryZone.mid)/tp.entryZone.mid*100/tp.riskPct).toFixed(1):'—';
-  const tp3RR=tp.slPrice&&tp.tp3?Math.abs((tp.tp3-tp.entryZone.mid)/tp.entryZone.mid*100/tp.riskPct).toFixed(1):'—';
+  const tp1RR=tp.rrTp1!=null?tp.rrTp1.toFixed(1):'—';
+  const tp2RR=tp.rrTp2!=null?tp.rrTp2.toFixed(1):'—';
+  const tp3RR=tp.rrTp3!=null?tp.rrTp3.toFixed(1):'—';
 
   const copyText=[
     `═══════════════════════════════════`,
@@ -2610,7 +2981,8 @@ function renderConfluence(confluence) {
     `Why         : ${tp.tp3R}`,
     ``,
     `── INVALIDATION ──`,
-    `${tp.invalidation}`,
+    `Primary   : ${tp.invalidation}`,
+    tp.preEntryInvalidation?`Pre-Entry : ${tp.preEntryInvalidation}`:'',
     ``,
     `── BIAS ──`,
     ...tp.biasLines,
@@ -2639,41 +3011,44 @@ function renderConfluence(confluence) {
   // SL block
   const slHTML=`
     <div class="tsc-level-block sl">
-      <div class="tsc-block-label">🛡 STOP LOSS</div>
+      <div class="tsc-block-label">🛡 STOP LOSS${tp.slType?` · ${tp.slType}`:''}</div>
       <div class="tsc-block-price">${fPrice(tp.slPrice)}</div>
       <span class="tsc-block-risk">RISK: ${riskPct}% FROM ENTRY</span>
       <div class="tsc-block-sub" style="margin-top:6px;">${tp.slReason}</div>
     </div>`;
 
   // TP blocks
-  const tp1HTML=`
+  const tp1HTML=tp.tp1?`
     <div class="tsc-level-block tp1">
-      <div class="tsc-block-label">🎯 TAKE PROFIT 1</div>
+      <div class="tsc-block-label">🎯 TAKE PROFIT 1${tp.tp1Type?` · ${tp.tp1Type}`:''}</div>
       <div class="tsc-block-price">${fPrice(tp.tp1)}</div>
-      <span class="tsc-block-rr">${tp1RR}R REWARD</span>
-      <div class="tsc-block-sub" style="margin-top:6px;">${tp.tp1R}<br><span style="color:var(--orange);">→ After TP1: Move SL to breakeven</span></div>
-    </div>`;
-  const tp2HTML=`
+      ${tp1RR!=='—'?`<span class="tsc-block-rr">${tp1RR}R REWARD</span>`:''}
+      <div class="tsc-block-sub" style="margin-top:6px;">${tp.tp1R}<br><span style="color:var(--orange);">→ After TP1 hit: Move SL to breakeven</span></div>
+    </div>`:`<div class="tsc-level-block tp1"><div class="tsc-block-label">🎯 TAKE PROFIT 1</div><div class="tsc-block-sub">No SMC level identified above entry on this timeframe — try a lower TF for more precision</div></div>`;
+
+  const tp2HTML=tp.tp2?`
     <div class="tsc-level-block tp2">
-      <div class="tsc-block-label">🎯 TAKE PROFIT 2</div>
+      <div class="tsc-block-label">🎯 TAKE PROFIT 2${tp.tp2Type?` · ${tp.tp2Type}`:''}</div>
       <div class="tsc-block-price">${fPrice(tp.tp2)}</div>
-      <span class="tsc-block-rr">${tp2RR}R REWARD</span>
-      <div class="tsc-block-sub" style="margin-top:6px;">${tp.tp2R}<br><span style="color:var(--orange);">→ After TP2: Trail SL to TP1</span></div>
-    </div>`;
-  const tp3HTML=`
+      ${tp2RR!=='—'?`<span class="tsc-block-rr">${tp2RR}R REWARD</span>`:''}
+      <div class="tsc-block-sub" style="margin-top:6px;">${tp.tp2R}<br><span style="color:var(--orange);">→ After TP2 hit: Trail SL to TP1 level</span></div>
+    </div>`:`<div class="tsc-level-block tp2"><div class="tsc-block-label">🎯 TAKE PROFIT 2</div><div class="tsc-block-sub">No second SMC level identified — close full position at TP1</div></div>`;
+
+  const tp3HTML=tp.tp3?`
     <div class="tsc-level-block tp3">
-      <div class="tsc-block-label">🎯 TAKE PROFIT 3</div>
+      <div class="tsc-block-label">🎯 TAKE PROFIT 3${tp.tp3Type?` · ${tp.tp3Type}`:''}</div>
       <div class="tsc-block-price">${fPrice(tp.tp3)}</div>
-      <span class="tsc-block-rr">${tp3RR}R REWARD</span>
+      ${tp3RR!=='—'?`<span class="tsc-block-rr">${tp3RR}R REWARD</span>`:''}
       <div class="tsc-block-sub" style="margin-top:6px;">${tp.tp3R}</div>
-    </div>`;
+    </div>`:`<div class="tsc-level-block tp3"><div class="tsc-block-label">🎯 TAKE PROFIT 3</div><div class="tsc-block-sub">No third SMC level identified — price discovery zone, hold a runner if momentum persists</div></div>`;
 
   // Invalidation block
   const invHTML=`
     <div class="tsc-level-block invalidation">
       <div class="tsc-block-label">⛔ INVALIDATION</div>
-      <div class="tsc-block-price" style="font-size:0.78rem;">${fPrice(tp.slPrice)}</div>
+      <div class="tsc-block-price" style="font-size:0.78rem;">${fPrice(tp.slPrice)} <span style="font-size:0.55rem;color:var(--text-dim);letter-spacing:1px;">(${tp.slType||'SL'})</span></div>
       <div class="tsc-block-sub" style="margin-top:4px;">${tp.invalidation}</div>
+      ${tp.preEntryInvalidation?`<div class="tsc-block-sub" style="margin-top:6px;color:var(--accent);">📍 PRE-ENTRY: ${tp.preEntryInvalidation}</div>`:''}
     </div>`;
 
   // Signals
@@ -2840,6 +3215,8 @@ async function runSmcCoinScan() {
   $('smc-loader-text').textContent='COMPUTING CONFLUENCE...';
   const pivots=calcPivots(candles,currentPrice);
   const validations=validateLevels(candles,currentPrice,obs,fvgs,eqhEql,pivots);
+  // Attach eqhEql to extStruct so buildConfluence can access EQH/EQL levels
+  if(extStruct) extStruct._eqhEql=eqhEql;
   const confluence=buildConfluence(extStruct,intStruct,pd,currentPrice,obs,fvgs,ticker,tf,liveMarkPrice);
 
   // Update source bar
@@ -2981,6 +3358,171 @@ function renderScannerCategory() {
    SMC MARKET SCANNER
 ══════════════════════════════════════════════════════════════ */
 
+/* ══════════════════════════════════════════════════════════════
+   SMC MARKET SCANNER — 5-PILLAR CONFLUENCE ENGINE
+   Pillars: Structure · Price Location · Order Flow · Volume · Derivatives
+   Each pillar scores 0–2 points. Max total = 10.
+   Threshold for display: score ≥ 4 (40%). Elite: ≥ 8.
+══════════════════════════════════════════════════════════════ */
+
+function scoreDerivatives(coin) {
+  // Returns {score, badges, direction}
+  // Uses funding rate, OI, OI/Vol ratio from the ticker data
+  let score=0; const badges=[];
+  const fr=coin.fundingRate;
+  const oi=coin.openInterest, oiVal=coin.oiValue, vol=coin.quoteVolume;
+
+  if(fr!=null){
+    const frPct=fr*100;
+    if(frPct>0.08){score+=2;badges.push({txt:`FR ${(frPct).toFixed(3)}% EXTREME LONG`,cls:'fired-bear',dir:'SHORT'});}
+    else if(frPct>0.04){score+=1;badges.push({txt:`FR ${(frPct).toFixed(3)}% HIGH LONG`,cls:'fired-bear',dir:'SHORT'});}
+    else if(frPct<-0.08){score+=2;badges.push({txt:`FR ${Math.abs(frPct).toFixed(3)}% EXTREME SHORT`,cls:'fired-bull',dir:'LONG'});}
+    else if(frPct<-0.04){score+=1;badges.push({txt:`FR ${Math.abs(frPct).toFixed(3)}% HIGH SHORT`,cls:'fired-bull',dir:'LONG'});}
+    else if(Math.abs(frPct)<0.01){badges.push({txt:`FR NEUTRAL`,cls:'dim',dir:'NEUTRAL'});}
+  }
+
+  if(oiVal&&vol){
+    const ratio=oiVal/vol;
+    // High OI relative to volume = leveraged, potential for big move
+    if(ratio>5){score+=1;badges.push({txt:`OI/VOL ${ratio.toFixed(1)}x HIGH LEVERAGE`,cls:'fired-gold',dir:'BOTH'});}
+    if(oiVal>500000000){score+=1;badges.push({txt:`OI $${fNum(oiVal)} MASSIVE`,cls:'fired-gold',dir:'BOTH'});}
+  }
+
+  return {score:Math.min(score,2),badges};
+}
+
+function scoreVolume(coin, allCoins) {
+  // Returns {score, badges}
+  // Uses 24h volume rank vs market, volume vs weighted avg as proxy for surge
+  let score=0; const badges=[];
+  const vol=coin.quoteVolume;
+  const marketTotal=allCoins.reduce((s,c)=>s+c.quoteVolume,0);
+  const mktShare=(vol/marketTotal)*100;
+  const rank=allCoins.filter(c=>c.quoteVolume>vol).length+1;
+  const totalCoins=allCoins.length;
+  const rankPct=rank/totalCoins;
+
+  if(rankPct<=0.01){score+=2;badges.push({txt:`TOP 1% VOLUME #${rank}`,cls:'fired-gold',rank});}
+  else if(rankPct<=0.05){score+=2;badges.push({txt:`TOP 5% VOL #${rank}`,cls:'fired-bull',rank});}
+  else if(rankPct<=0.10){score+=1;badges.push({txt:`TOP 10% VOL #${rank}`,cls:'fired-bull',rank});}
+  else if(rankPct<=0.20){score+=1;badges.push({txt:`TOP 20% VOL #${rank}`,cls:'fired-acc',rank});}
+  else {badges.push({txt:`VOL RANK #${rank}`,cls:'dim',rank});}
+
+  // Volume spike via price change vs volume: big move + big volume = confirmation
+  const absChange=Math.abs(coin.changePct24h);
+  if(absChange>10&&vol>100000000){score+=1;badges.push({txt:`VOL+MOVE SPIKE ${fPct(coin.changePct24h)}`,cls:coin.changePct24h>0?'fired-bull':'fired-bear'});}
+  else if(absChange>5&&vol>50000000){badges.push({txt:`MOMENTUM ${fPct(coin.changePct24h)}`,cls:coin.changePct24h>0?'fired-bull':'fired-bear'});}
+
+  return {score:Math.min(score,2),badges,rank};
+}
+
+function scoreOrderFlow(candles) {
+  // Returns {score, badges}
+  // Looks at recent candle bodies, wicks, and volume distribution
+  if(!candles||candles.length<10) return {score:0,badges:[]};
+  let score=0; const badges=[];
+  const last5=candles.slice(-5);
+  const last10=candles.slice(-10);
+
+  // Bullish order flow: more bullish candles, increasing closes, wicks below = buyers
+  const bullCandles5=last5.filter(c=>c.c>c.o).length;
+  const bearCandles5=last5.filter(c=>c.c<c.o).length;
+
+  // Average candle body vs wick ratio — high body = conviction
+  const avgBodyRatio=last5.reduce((sum,c)=>{
+    const body=Math.abs(c.c-c.o);
+    const range=c.h-c.l||0.0001;
+    return sum+body/range;
+  },0)/5;
+
+  // Volume trend: is recent volume above average?
+  const avgVol10=last10.reduce((s,c)=>s+c.v,0)/10;
+  const lastVol=candles[candles.length-1].v;
+  const volRatio=lastVol/avgVol10;
+
+  if(bullCandles5>=4){score+=1;badges.push({txt:`${bullCandles5}/5 BULL CANDLES`,cls:'fired-bull'});}
+  else if(bearCandles5>=4){score+=1;badges.push({txt:`${bearCandles5}/5 BEAR CANDLES`,cls:'fired-bear'});}
+
+  if(avgBodyRatio>0.6){score+=1;badges.push({txt:`HIGH BODY RATIO ${(avgBodyRatio*100).toFixed(0)}%`,cls:'fired-acc'});}
+
+  if(volRatio>2){score+=1;badges.push({txt:`VOL SPIKE ${volRatio.toFixed(1)}x AVG`,cls:'fired-gold'});}
+  else if(volRatio>1.5){badges.push({txt:`VOL ABOVE AVG ${volRatio.toFixed(1)}x`,cls:'fired-acc'});}
+
+  // Last candle: big body with above-avg volume = strong intent
+  const lastC=candles[candles.length-1];
+  const lastBody=Math.abs(lastC.c-lastC.o)/(lastC.h-lastC.l||0.0001);
+  if(lastBody>0.7&&volRatio>1.5){score+=1;badges.push({txt:`STRONG INTENT CANDLE`,cls:lastC.c>lastC.o?'fired-bull':'fired-bear'});}
+
+  return {score:Math.min(score,2),badges};
+}
+
+function scorePriceLocation(pd, extStruct) {
+  // Returns {score, badges}
+  let score=0; const badges=[];
+  if(!pd) return {score:0,badges:[{txt:'NO P/D DATA',cls:'dim'}]};
+
+  const pct=pd.pct;
+  if(pct<25){score+=2;badges.push({txt:`DEEP DISCOUNT ${pct.toFixed(0)}%`,cls:'fired-bull'});}
+  else if(pct<40){score+=1;badges.push({txt:`DISCOUNT ${pct.toFixed(0)}%`,cls:'fired-bull'});}
+  else if(pct>75){score+=2;badges.push({txt:`DEEP PREMIUM ${pct.toFixed(0)}%`,cls:'fired-bear'});}
+  else if(pct>60){score+=1;badges.push({txt:`PREMIUM ${pct.toFixed(0)}%`,cls:'fired-bear'});}
+  else {badges.push({txt:`EQUILIBRIUM ${pct.toFixed(0)}%`,cls:'dim'});}
+
+  // Fib confluence: if price is near 0.618 (golden ratio) or 0.382
+  const nearFib=pd.fibLevels.find(f=>{
+    const fibPct=f.fib*100;
+    return (fibPct===61.8||fibPct===38.2)&&Math.abs(pd.currentPrice-f.price)/f.price<0.015;
+  });
+  if(nearFib){score+=1;badges.push({txt:`NEAR FIB ${nearFib.label}`,cls:'fired-gold'});}
+
+  // Equal highs/lows confluence: price approaching EQH/EQL = liquidity run potential
+  if(extStruct?._eqhEql){
+    const eqhs=extStruct._eqhEql.eqHighs.filter(e=>!e.swept);
+    const eqls=extStruct._eqhEql.eqLows.filter(e=>!e.swept);
+    const nearEQH=eqhs.find(e=>Math.abs(e.level-pd.currentPrice)/pd.currentPrice<0.03);
+    const nearEQL=eqls.find(e=>Math.abs(e.level-pd.currentPrice)/pd.currentPrice<0.03);
+    if(nearEQH){score+=1;badges.push({txt:`NEAR EQH BSL ${fPrice(nearEQH.level)}`,cls:'fired-bear'});}
+    if(nearEQL){score+=1;badges.push({txt:`NEAR EQL SSL ${fPrice(nearEQL.level)}`,cls:'fired-bull'});}
+  }
+
+  return {score:Math.min(score,2),badges};
+}
+
+function scoreStructure(extStruct, intStruct, obs, fvgs) {
+  // Returns {score, badges, direction}
+  let score=0; const badges=[]; let dir='NEUTRAL';
+
+  if(!extStruct) return {score:0,badges:[{txt:'NO STRUCTURE',cls:'dim'}],dir};
+
+  // External bias
+  if(extStruct.bias==='BULLISH'){score+=1;badges.push({txt:'EXT BULLISH',cls:'fired-bull'});dir='LONG';}
+  else if(extStruct.bias==='BEARISH'){score+=1;badges.push({txt:'EXT BEARISH',cls:'fired-bear'});dir='SHORT';}
+
+  // MSS is stronger than BOS
+  if(extStruct.lastEvent){
+    const ev=extStruct.lastEvent;
+    if(ev.type==='MSS'){score+=2;badges.push({txt:`MSS ${ev.dir}`,cls:ev.dir==='BULLISH'?'fired-bull':'fired-bear'});if(dir==='NEUTRAL')dir=ev.dir==='BULLISH'?'LONG':'SHORT';}
+    else if(ev.type==='BOS'){score+=1;badges.push({txt:`BOS ${ev.dir}`,cls:ev.dir==='BULLISH'?'fired-bull':'fired-bear'});}
+  }
+
+  // Internal alignment with external
+  if(intStruct&&intStruct.bias===extStruct.bias&&extStruct.bias!=='RANGING'){
+    score+=1;badges.push({txt:`INT ALIGNED ${intStruct.bias}`,cls:intStruct.bias==='BULLISH'?'fired-bull':'fired-bear'});
+  } else if(intStruct&&intStruct.bias!==extStruct.bias&&extStruct.bias!=='RANGING'){
+    badges.push({txt:`INT PULLBACK`,cls:'fired-acc'});
+  }
+
+  // Active unmitigated OBs near price
+  const activeOBs=obs.filter(o=>!o.mitigated&&Math.abs(o.distPct)<3);
+  if(activeOBs.length){score+=1;badges.push({txt:`${activeOBs.length} OB NEAR PRICE`,cls:'fired-acc'});}
+
+  // Unfilled FVGs near price
+  const activeFVGs=fvgs.filter(f=>f.fillStatus!=='FILLED'&&Math.abs(f.distPct)<3);
+  if(activeFVGs.length){score+=1;badges.push({txt:`${activeFVGs.length} FVG OPEN`,cls:'fired-acc'});}
+
+  return {score:Math.min(score,2),badges,dir};
+}
+
 async function runSmcMarketScan() {
   $('smc-market-empty').style.display='none';
   $('smc-market-results').style.display='none';
@@ -2995,7 +3537,8 @@ async function runSmcMarketScan() {
   const tf=STATE.smcMarketTf;
 
   try {
-    // Step 1: Get top coins by volume
+    // ── PHASE 1: Full market ticker fetch (SMC + Derivatives in one call) ──
+    $('smc-market-loader-text').textContent='PHASE 1 — FETCHING FULL MARKET TICKERS + DERIVATIVES...';
     let allCoins;
     try {
       if(STATE.smcMarketSrc==='binance') allCoins=await fetchAllBinance();
@@ -3005,26 +3548,42 @@ async function runSmcMarketScan() {
       catch(e2){ throw new Error('Could not fetch market data: '+e2.message); }
     }
 
-    // Sort by volume — scan ALL available coins, no hardcoded limit
+    // Sort by volume, filter illiquid
     allCoins.sort((a,b)=>b.quoteVolume-a.quoteVolume);
-    // Filter out extremely low-volume pairs (less than $50k/day) that are illiquid
-    const topCoins=allCoins.filter(c=>c.quoteVolume>50000);
+    const liquidCoins=allCoins.filter(c=>c.quoteVolume>50000);
 
+    // ── PHASE 2: Pre-filter by derivatives signals ──
+    // Score each coin on derivatives alone (free, no kline fetch needed)
+    // Only proceed to kline fetch for coins that have at least some signal
+    $('smc-market-loader-text').textContent=`PHASE 2 — DERIVATIVES PRE-FILTER (${liquidCoins.length} coins)...`;
+    const derivPreScored=liquidCoins.map(coin=>{
+      const deriv=scoreDerivatives(coin);
+      const vol=scoreVolume(coin,liquidCoins);
+      const preScore=deriv.score+vol.score;
+      return {...coin, _derivScore:deriv.score, _derivBadges:deriv.badges, _volScore:vol.score, _volBadges:vol.badges, _volRank:vol.rank, _preScore:preScore};
+    });
+
+    // Keep only coins with pre-score >= 1 (at least one signal) for kline analysis
+    // This reduces kline fetches dramatically without losing quality coins
+    const klineCandidates=derivPreScored.filter(c=>c._preScore>=1);
     $('smc-market-loading').style.display='none';
     $('smc-market-progress').style.display='block';
 
-    // Step 2: For each coin, fetch klines and run SMC
+    // ── PHASE 3: Kline fetch + full SMC engine on candidates ──
     const results=[];
-    for(let i=0;i<topCoins.length;i++){
-      const coin=topCoins[i];
+    for(let i=0;i<klineCandidates.length;i++){
+      const coin=klineCandidates[i];
       const symbol=coin.symbol+'USDT';
-      $('smc-progress-bar').style.width=((i+1)/topCoins.length*100).toFixed(0)+'%';
-      $('smc-progress-text').textContent=`Scanning ${i+1} / ${topCoins.length} — ${coin.symbol}...`;
+      const pct=((i+1)/klineCandidates.length*100).toFixed(0);
+      $('smc-progress-bar').style.width=pct+'%';
+      $('smc-progress-text').textContent=`Phase 3 — SMC Analysis: ${i+1} / ${klineCandidates.length} — ${coin.symbol}  (${pct}%)`;
 
       try {
         const candles=await fetchKline(symbol,tf,60);
         if(!candles||candles.length<15){continue;}
         const cp=candles[candles.length-1].c;
+
+        // Run full SMC engine
         const extSwings=detectSwings(candles,2);
         const intSwings=detectSwings(candles.slice(-20),1);
         const extStruct=classifyStructure(extSwings,candles,cp);
@@ -3032,32 +3591,76 @@ async function runSmcMarketScan() {
         const obs=detectOrderBlocks(candles,cp);
         const fvgs=detectFVGs(candles,cp);
         const pd=calcPremiumDiscount(candles,cp);
-        const confluence=buildConfluence(extStruct,intStruct,pd,cp,obs,fvgs);
+        const eqhEql=detectEQHEQL(extSwings,candles,cp);
+        if(extStruct) extStruct._eqhEql=eqhEql;
 
-        // Only include if there's a meaningful signal
-        const dir=confluence.direction;
-        if(dir==='NEUTRAL') continue;
+        // ── Score all 5 pillars ──
+        const structScore=scoreStructure(extStruct,intStruct,obs,fvgs);
+        const locScore=scorePriceLocation(pd,extStruct);
+        const flowScore=scoreOrderFlow(candles);
+        const derivScore={score:coin._derivScore,badges:coin._derivBadges};
+        const volScore={score:coin._volScore,badges:coin._volBadges};
+
+        const totalScore=structScore.score+locScore.score+flowScore.score+derivScore.score+volScore.score;
+
+        // ── Determine direction ──
+        // Use structure direction as primary, validate with derivatives
+        let direction=structScore.dir;
+        // Derivatives can override direction if extreme (e.g. extreme positive funding = SHORT bias)
+        const derivDir=derivScore.badges.find(b=>b.dir&&b.dir!=='BOTH'&&b.dir!=='NEUTRAL');
+        if(derivDir&&totalScore>=6) direction=derivDir.dir;
+        // Fallback if still neutral
+        if(direction==='NEUTRAL'){
+          if(locScore.badges.find(b=>b.cls==='fired-bull')) direction='LONG';
+          else if(locScore.badges.find(b=>b.cls==='fired-bear')) direction='SHORT';
+        }
+
+        // ── Minimum threshold: score ≥ 4 AND at least 2 pillars firing ──
+        const firingPillars=[structScore,locScore,flowScore,derivScore,volScore].filter(p=>p.score>0).length;
+        if(totalScore<4||firingPillars<2) continue;
+        if(direction==='NEUTRAL') continue;
+
+        // Tier
+        const tier=totalScore>=8?'elite':totalScore>=6?'high':totalScore>=4?'mid':'low';
+
+        // Build confluence narrative (top 3 most impactful badges)
+        const allBadges=[
+          ...structScore.badges.map(b=>({...b,pillar:'STRUCT'})),
+          ...locScore.badges.map(b=>({...b,pillar:'LOCATION'})),
+          ...flowScore.badges.map(b=>({...b,pillar:'FLOW'})),
+          ...derivScore.badges.map(b=>({...b,pillar:'DERIV'})),
+          ...volScore.badges.map(b=>({...b,pillar:'VOL'})),
+        ].filter(b=>b.cls!=='dim');
+
+        // Key reason: pick the single most impactful signal
+        const keyBadge=allBadges.find(b=>b.cls==='fired-gold')||allBadges.find(b=>b.cls==='fired-bull'||b.cls==='fired-bear')||allBadges[0];
+        const keyReason=keyBadge?`${keyBadge.pillar}: ${keyBadge.txt}`:'Multi-factor confluence detected';
 
         results.push({
           symbol:coin.symbol,
           price:cp,
           changePct24h:coin.changePct24h,
           quoteVolume:coin.quoteVolume,
+          volRank:coin._volRank,
+          fundingRate:coin.fundingRate,
+          openInterest:coin.openInterest,
+          oiValue:coin.oiValue,
           extBias:extStruct?.bias||'RANGING',
           intBias:intStruct?.bias||'RANGING',
           pdZone:pd?.zone||'UNKNOWN',
           pdPct:pd?.pct||50,
-          direction:dir,
-          bullScore:confluence.bullScore,
-          bearScore:confluence.bearScore,
-          idea:confluence.idea,
-          signals:confluence.signals.slice(0,3),
+          direction,
+          totalScore,
+          tier,
+          firingPillars,
+          scores:{struct:structScore.score,loc:locScore.score,flow:flowScore.score,deriv:derivScore.score,vol:volScore.score},
+          allBadges,
+          keyReason,
           activeOBs:obs.filter(o=>!o.mitigated).length,
           unfilledFVGs:fvgs.filter(f=>f.fillStatus!=='FILLED').length,
         });
-      } catch(_){ /* skip this coin */ }
+      } catch(_){ /* skip */ }
 
-      // Small delay to avoid rate limiting
       await new Promise(r=>setTimeout(r,80));
     }
 
@@ -3065,15 +3668,21 @@ async function runSmcMarketScan() {
     $('smc-market-progress').style.display='none';
 
     // Stats
-    $('smc-scan-count').textContent=topCoins.length+' COINS';
-    $('smc-setups-count').textContent=results.length+' SETUPS';
+    const longCount=results.filter(r=>r.direction==='LONG').length;
+    const shortCount=results.filter(r=>r.direction==='SHORT').length;
+    const avgScore=results.length?+(results.reduce((s,r)=>s+r.totalScore,0)/results.length).toFixed(1):0;
+    $('smc-scan-count').textContent=liquidCoins.length+' COINS';
+    $('smc-setups-count').textContent=results.length+' QUALIFIED';
+    $('smc-long-count').textContent=longCount+' LONG';
+    $('smc-short-count').textContent=shortCount+' SHORT';
+    $('smc-avg-score').textContent=avgScore+'/10 AVG';
     $('smc-scan-updated').textContent=nowStr();
     $('smc-market-stats-bar').style.display='flex';
     $('smc-market-results').style.display='block';
 
     renderSmcMarketCards();
     setStatus('ok','SMC SCAN DONE');
-    onScanComplete('SMC MARKET SCAN DONE', `${topCoins.length} coins scanned · ${results.length} actionable setups found.`);
+    onScanComplete('SMC MARKET SCAN DONE',`${liquidCoins.length} coins · ${results.length} qualified · ${longCount} long, ${shortCount} short setups found.`);
   } catch(e){
     $('smc-market-progress').style.display='none';
     $('smc-market-loading').style.display='none';
@@ -3090,72 +3699,125 @@ function renderSmcMarketCards() {
   const container=$('smc-scan-cards');
   let data=[...STATE.smcMarketData];
   const f=STATE.smcMarketFilter;
+  const s=STATE.smcMarketSort||'score';
 
-  if(f==='long') data=data.filter(d=>d.direction==='LONG'||d.direction==='WATCH_LONG');
-  else if(f==='short') data=data.filter(d=>d.direction==='SHORT'||d.direction==='WATCH_SHORT');
-  else if(f==='watch') data=data.filter(d=>d.direction==='WATCH_LONG'||d.direction==='WATCH_SHORT');
+  // Filter
+  if(f==='long')  data=data.filter(d=>d.direction==='LONG');
+  else if(f==='short') data=data.filter(d=>d.direction==='SHORT');
+  else if(f==='watch') data=data.filter(d=>d.totalScore>=4&&d.totalScore<6);
+  else if(f==='elite') data=data.filter(d=>d.tier==='elite');
 
-  // Sort: LONG/SHORT first, then WATCH
-  data.sort((a,b)=>{
-    const rank=d=>d==='LONG'||d==='SHORT'?0:1;
-    return rank(a.direction)-rank(b.direction)||(b.bullScore+b.bearScore)-(a.bullScore+a.bearScore);
-  });
+  // Sort
+  if(s==='volume')      data.sort((a,b)=>b.quoteVolume-a.quoteVolume);
+  else if(s==='change') data.sort((a,b)=>Math.abs(b.changePct24h)-Math.abs(a.changePct24h));
+  else data.sort((a,b)=>b.totalScore-a.totalScore);
 
   if(!data.length){
-    container.innerHTML=`<div class="smc-scan-empty">NO ${f.toUpperCase()} SETUPS FOUND IN CURRENT SCAN</div>`;
+    container.innerHTML=`<div class="smc-scan-empty" style="grid-column:1/-1;text-align:center;padding:60px 20px;font-family:var(--font-mono);font-size:0.75rem;color:var(--text-dim);letter-spacing:2px;">NO SETUPS MATCH CURRENT FILTER — TRY "ALL SETUPS"</div>`;
     return;
   }
 
   container.innerHTML=data.map(d=>{
     const dir=d.direction;
-    const cardCls=dir==='LONG'?'long-setup':dir==='SHORT'?'short-setup':'watch-setup';
-    const tagCls=dir==='LONG'?'long-setup':dir==='SHORT'?'short-setup':'watch-setup';
-    const tagTxt=dir==='LONG'?'▲ LONG SETUP':dir==='SHORT'?'▼ SHORT SETUP':dir==='WATCH_LONG'?'◉ WATCH LONG':'◉ WATCH SHORT';
-    const biasClr=d.extBias==='BULLISH'?'var(--bull)':d.extBias==='BEARISH'?'var(--bear)':'var(--orange)';
-    const pdClr=d.pdZone==='DISCOUNT'?'var(--bull)':d.pdZone==='PREMIUM'?'var(--bear)':'var(--accent)';
+    const cardCls=(dir==='LONG'?'long-setup':'short-setup')+(d.tier==='elite'?' elite-setup':'');
+    const tagCls=dir==='LONG'?'long-setup':'short-setup';
+    const tagTxt=dir==='LONG'?'▲ LONG':'▼ SHORT';
+    const tierCls=d.tier;
+    const tierLabel=d.tier==='elite'?'★ ELITE':d.tier==='high'?'HIGH':d.tier==='mid'?'MID':'WATCH';
     const chgCls=d.changePct24h>=0?'bull':'bear';
+    const pdClr=d.pdZone==='DISCOUNT'?'var(--bull)':d.pdZone==='PREMIUM'?'var(--bear)':'var(--accent)';
+    const barPct=((d.totalScore/10)*100).toFixed(0);
+    const frStr=d.fundingRate!=null?fRate(d.fundingRate):'—';
+    const frCls=d.fundingRate>0.04?'bear':d.fundingRate<-0.04?'bull':'neutral';
+
+    // Pillar score mini-bars
+    const pillars=[
+      {label:'STRUCT', score:d.scores.struct,max:2},
+      {label:'LOCATION',score:d.scores.loc,max:2},
+      {label:'FLOW',  score:d.scores.flow,max:2},
+      {label:'DERIV', score:d.scores.deriv,max:2},
+      {label:'VOL',   score:d.scores.vol,max:2},
+    ];
+    const pillarHTML=pillars.map(p=>{
+      const pct=(p.score/p.max*100).toFixed(0);
+      const clr=p.score>=2?'var(--bull)':p.score>=1?'var(--orange)':'var(--border)';
+      return `<div style="flex:1;min-width:0;">
+        <div style="font-family:var(--font-mono);font-size:0.45rem;color:var(--text-dim);letter-spacing:0.5px;margin-bottom:2px;text-align:center;">${p.label}</div>
+        <div style="height:3px;background:var(--border);border-radius:2px;overflow:hidden;">
+          <div style="height:100%;width:${pct}%;background:${clr};border-radius:2px;"></div>
+        </div>
+      </div>`;
+    }).join('');
+
+    // Top 4 active (non-dim) badges
+    const topBadges=d.allBadges.filter(b=>b.cls!=='dim').slice(0,5);
 
     return `
       <div class="smc-scan-card ${cardCls}" data-symbol="${d.symbol}">
-        <div class="ssc-header">
+        <div class="ssc-top">
           <span class="ssc-symbol">${d.symbol}</span>
           <span class="ssc-setup-tag ${tagCls}">${tagTxt}</span>
         </div>
-        <div class="ssc-header" style="margin-bottom:10px;">
+        <div class="ssc-price-row">
           <span class="ssc-price">${fPrice(d.price)}</span>
-          <span class="${chgCls}" style="font-family:var(--font-mono);font-size:0.75rem;">${fPct(d.changePct24h)}</span>
+          <span class="ssc-change ${chgCls}">${fPct(d.changePct24h)}</span>
         </div>
-        <div class="ssc-details">
-          <div class="ssc-detail-row">
-            <span class="ssc-detail-label">EXT STRUCTURE</span>
-            <span class="ssc-detail-value" style="color:${biasClr};">${d.extBias}</span>
+
+        <!-- Score section -->
+        <div class="conf-score-label">
+          <span class="conf-score-num ${tierCls}">${d.totalScore}</span>
+          <span class="conf-score-max">/10</span>
+          <span style="font-family:var(--font-mono);font-size:0.55rem;color:var(--text-dim);">${d.firingPillars}/5 PILLARS</span>
+          <span class="conf-score-tier ${tierCls}">${tierLabel}</span>
+        </div>
+        <div class="conf-score-bar-outer">
+          <div class="conf-score-bar-inner ${tierCls}" style="width:${barPct}%"></div>
+        </div>
+
+        <!-- Pillar breakdown -->
+        <div style="display:flex;gap:4px;margin-bottom:8px;">${pillarHTML}</div>
+
+        <div class="ssc-divider"></div>
+
+        <!-- Data grid -->
+        <div class="ssc-data-grid">
+          <div class="ssc-data-item">
+            <span class="ssc-data-label">EXT STRUCTURE</span>
+            <span class="ssc-data-value" style="color:${d.extBias==='BULLISH'?'var(--bull)':d.extBias==='BEARISH'?'var(--bear)':'var(--orange)'};">${d.extBias}</span>
           </div>
-          <div class="ssc-detail-row">
-            <span class="ssc-detail-label">INT STRUCTURE</span>
-            <span class="ssc-detail-value" style="color:${d.intBias==='BULLISH'?'var(--bull)':d.intBias==='BEARISH'?'var(--bear)':'var(--orange)'};">${d.intBias}</span>
+          <div class="ssc-data-item">
+            <span class="ssc-data-label">PRICE LOCATION</span>
+            <span class="ssc-data-value" style="color:${pdClr};">${d.pdZone} ${d.pdPct.toFixed(0)}%</span>
           </div>
-          <div class="ssc-detail-row">
-            <span class="ssc-detail-label">PRICE LOCATION</span>
-            <span class="ssc-detail-value" style="color:${pdClr};">${d.pdZone} (${d.pdPct.toFixed(1)}%)</span>
+          <div class="ssc-data-item">
+            <span class="ssc-data-label">VOLUME 24H</span>
+            <span class="ssc-data-value">$${fNum(d.quoteVolume)} <span style="color:var(--text-dim);font-size:0.5rem;">#${d.volRank||'—'}</span></span>
           </div>
-          <div class="ssc-detail-row">
-            <span class="ssc-detail-label">BULL / BEAR SCORE</span>
-            <span class="ssc-detail-value"><span class="bull">${d.bullScore}</span> / <span class="bear">${d.bearScore}</span></span>
+          <div class="ssc-data-item">
+            <span class="ssc-data-label">FUNDING RATE</span>
+            <span class="ssc-data-value ${frCls}">${frStr}</span>
           </div>
-          <div class="ssc-detail-row">
-            <span class="ssc-detail-label">ACTIVE OBs / FVGs</span>
-            <span class="ssc-detail-value">${d.activeOBs} OBs · ${d.unfilledFVGs} FVGs</span>
+          <div class="ssc-data-item">
+            <span class="ssc-data-label">ACTIVE OBs</span>
+            <span class="ssc-data-value">${d.activeOBs} OB · ${d.unfilledFVGs} FVG</span>
           </div>
-          <div class="ssc-detail-row">
-            <span class="ssc-detail-label">VOLUME 24H</span>
-            <span class="ssc-detail-value">$${fNum(d.quoteVolume)}</span>
+          <div class="ssc-data-item">
+            <span class="ssc-data-label">OI VALUE</span>
+            <span class="ssc-data-value">${d.oiValue?'$'+fNum(d.oiValue):'—'}</span>
           </div>
         </div>
-        <div class="ssc-confluence">${d.signals.map(s=>`<span class="${s.cls}">→ ${s.txt}</span>`).join('<br>')}</div>
+
+        <!-- Active confluence badges -->
+        <div class="pillar-row">
+          ${topBadges.map(b=>`<span class="pillar-badge ${b.cls}">${b.txt}</span>`).join('')}
+        </div>
+
+        <!-- Key reason -->
+        <div class="ssc-reason">→ ${d.keyReason}</div>
       </div>`;
   }).join('');
 
-  // Click to open SMC coin analysis
+  // Click to open full SMC coin analysis
   container.querySelectorAll('.smc-scan-card[data-symbol]').forEach(card=>{
     card.addEventListener('click',()=>{
       const sym=card.dataset.symbol;
