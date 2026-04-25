@@ -826,6 +826,8 @@ body {
 .smc-scan-card.elite-setup { box-shadow:0 0 0 1px rgba(255,213,79,0.2),0 4px 20px rgba(255,213,79,0.06); }
 .smc-scan-card.elite-setup::before { background:linear-gradient(90deg,var(--gold),var(--bull),var(--gold)); }
 .smc-scan-card:hover { border-color:var(--border-bright); transform:translateY(-1px); box-shadow:0 6px 24px rgba(0,0,0,0.4); }
+.smc-scan-card.conflict-card { border-color:rgba(255,61,87,0.3); }
+.smc-scan-card.conflict-card::before { background:var(--bear); }
 
 .ssc-top { display:flex; align-items:center; justify-content:space-between; margin-bottom:6px; }
 .ssc-price-row { display:flex; align-items:baseline; justify-content:space-between; margin-bottom:4px; }
@@ -1297,7 +1299,7 @@ body {
     <div class="empty-state" id="smc-market-empty">
       <div class="empty-icon">⬡</div>
       <div class="empty-title">SMC MARKET SCAN READY</div>
-      <div class="empty-sub">Scans top 30 coins by volume. Runs full SMC analysis on each. Shows only coins with actionable setups — potential longs, shorts, or key watch levels.</div>
+      <div class="empty-sub">Scans the full market (all liquid USDT pairs). Runs a 4-gate SMC engine on each coin — HTF bias, price location, level proximity, and entry structure must all align. Only coins where the balloon is coiled and ready to pop are shown.</div>
     </div>
     <div class="loading-state" id="smc-market-loading" style="display:none;">
       <div class="loader-ring" style="border-top-color:var(--orange);"></div>
@@ -1339,7 +1341,7 @@ body {
 </div>
 
 <footer class="footer">
-  <span>CRYPTEX v2.0 — DATA: BINANCE FAPI / BYBIT V5 / COINGECKO · SMC ENGINE: ORDER BLOCKS · FVG · STRUCTURE · LIQUIDITY</span>
+  <span>CRYPTEX v3.0 — DATA: BINANCE FAPI / BYBIT V5 / COINGECKO · SMC ENGINE v2: 4-GATE SYSTEM · HTF BIAS · P/D LOCATION · OB/FVG/SWEEP · ENTRY STRUCTURE · DERIVATIVES CONFLUENCE</span>
   <span>NOT FINANCIAL ADVICE. FOR INFORMATIONAL USE ONLY.</span>
 </footer>
 
@@ -3543,480 +3545,681 @@ function renderScannerCategory() {
    Threshold for display: score ≥ 4 (40%). Elite: ≥ 8.
 ══════════════════════════════════════════════════════════════ */
 
-function scoreDerivatives(coin) {
-  // Returns {score, badges, direction}
-  // Uses funding rate, OI, OI/Vol ratio from the ticker data
-  let score=0; const badges=[];
-  const fr=coin.fundingRate;
-  const oi=coin.openInterest, oiVal=coin.oiValue, vol=coin.quoteVolume;
+/* ══════════════════════════════════════════════════════════════
+   SMC MARKET SCANNER — GATE-BASED INTELLIGENCE ENGINE v2
+   Philosophy: A coin is interesting only when SMC concepts
+   perfectly align AND derivatives confirm the crowd is wrong.
+   
+   GATE SYSTEM (all must pass, in order):
+   Gate 1 — HTF bias is clear (not ranging) — uses last 150 candles
+   Gate 2 — Price is in the correct P/D zone for that bias
+   Gate 3 — Price is AT an SMC level RIGHT NOW (OB / FVG / EQH-EQL sweep)
+   Gate 4 — Entry TF structure agrees (BOS or MSS in bias direction)
+   
+   GRADE (after all 4 gates pass):
+   A+ ELITE  = All 4 + internal pullback setting up entry + derivatives confirm
+   A  HIGH   = All 4 + derivatives confirm OR internal aligned
+   B  WATCH  = All 4 + derivatives neutral
+   ⚠ CONFLICT= All 4 + derivatives strongly disagree → shown with warning
+══════════════════════════════════════════════════════════════ */
 
-  if(fr!=null){
-    const frPct=fr*100;
-    if(frPct>0.08){score+=2;badges.push({txt:`FR ${(frPct).toFixed(3)}% EXTREME LONG`,cls:'fired-bear',dir:'SHORT'});}
-    else if(frPct>0.04){score+=1;badges.push({txt:`FR ${(frPct).toFixed(3)}% HIGH LONG`,cls:'fired-bear',dir:'SHORT'});}
-    else if(frPct<-0.08){score+=2;badges.push({txt:`FR ${Math.abs(frPct).toFixed(3)}% EXTREME SHORT`,cls:'fired-bull',dir:'LONG'});}
-    else if(frPct<-0.04){score+=1;badges.push({txt:`FR ${Math.abs(frPct).toFixed(3)}% HIGH SHORT`,cls:'fired-bull',dir:'LONG'});}
-    else if(Math.abs(frPct)<0.01){badges.push({txt:`FR NEUTRAL`,cls:'dim',dir:'NEUTRAL'});}
+/* ── GATE 1: HTF Bias — uses last 150 candles (strong=3) ── */
+function checkHTFBias(candles) {
+  // Use last 150 candles as HTF context, strength=3 for major swings only
+  const htfCandles = candles.slice(-150);
+  const swings = detectSwings(htfCandles, 3);
+  if (swings.length < 4) return { bias: 'RANGING', confidence: 0, lastEvent: null, lastHH: null, lastHL: null, lastLH: null, lastLL: null };
+
+  const highs = swings.filter(s => s.type === 'high');
+  const lows  = swings.filter(s => s.type === 'low');
+
+  // Label HH/HL/LH/LL
+  const lHigh = [], lLow = [];
+  for (let i = 0; i < highs.length; i++) {
+    if (i === 0) { lHigh.push({ ...highs[i], label: 'SH' }); continue; }
+    lHigh.push({ ...highs[i], label: highs[i].price > highs[i-1].price ? 'HH' : 'LH' });
+  }
+  for (let i = 0; i < lows.length; i++) {
+    if (i === 0) { lLow.push({ ...lows[i], label: 'SL' }); continue; }
+    lLow.push({ ...lows[i], label: lows[i].price > lows[i-1].price ? 'HL' : 'LL' });
   }
 
-  if(oiVal&&vol){
-    const ratio=oiVal/vol;
-    // High OI relative to volume = leveraged, potential for big move
-    if(ratio>5){score+=1;badges.push({txt:`OI/VOL ${ratio.toFixed(1)}x HIGH LEVERAGE`,cls:'fired-gold',dir:'BOTH'});}
-    if(oiVal>500000000){score+=1;badges.push({txt:`OI $${fNum(oiVal)} MASSIVE`,cls:'fired-gold',dir:'BOTH'});}
+  // Bias: need at least 2 of last 3 confirming
+  const lastH = lHigh.slice(-3), lastL = lLow.slice(-3);
+  const hhCount = lastH.filter(h => h.label === 'HH').length;
+  const hlCount = lastL.filter(l => l.label === 'HL').length;
+  const lhCount = lastH.filter(h => h.label === 'LH').length;
+  const llCount = lastL.filter(l => l.label === 'LL').length;
+
+  let bias = 'RANGING', confidence = 0;
+  if (hhCount >= 1 && hlCount >= 1) {
+    bias = 'BULLISH';
+    confidence = (hhCount + hlCount >= 4) ? 2 : 1; // 2=strong, 1=moderate
+  } else if (llCount >= 1 && lhCount >= 1) {
+    bias = 'BEARISH';
+    confidence = (llCount + lhCount >= 4) ? 2 : 1;
   }
 
-  return {score:Math.min(score,2),badges};
+  // Find most recent BOS/MSS in last 150c
+  const allPoints = [...lHigh, ...lLow].sort((a, b) => a.idx - b.idx);
+  const events = [];
+  for (let i = 1; i < allPoints.length; i++) {
+    const pt = allPoints[i];
+    if (pt.label === 'HH' && i > 1) {
+      const prevH = lHigh.find(h => h.idx < pt.idx);
+      if (prevH) events.push({ type: 'BOS', dir: 'BULLISH', price: pt.price, idx: pt.idx });
+    }
+    if (pt.label === 'LL' && i > 1) {
+      const prevL = lLow.find(l => l.idx < pt.idx);
+      if (prevL) events.push({ type: 'BOS', dir: 'BEARISH', price: pt.price, idx: pt.idx });
+    }
+    if (pt.label === 'LL') {
+      const lastHL = lLow.slice().reverse().find(l => l.label === 'HL' && l.idx < pt.idx);
+      if (lastHL && bias === 'BULLISH') events.push({ type: 'MSS', dir: 'BEARISH', price: lastHL.price, idx: pt.idx });
+    }
+    if (pt.label === 'HH') {
+      const lastLH = lHigh.slice().reverse().find(h => h.label === 'LH' && h.idx < pt.idx);
+      if (lastLH && bias === 'BEARISH') events.push({ type: 'MSS', dir: 'BULLISH', price: lastLH.price, idx: pt.idx });
+    }
+  }
+  const lastEvent = events.length ? events[events.length - 1] : null;
+
+  // MSS overrides bias
+  if (lastEvent && lastEvent.type === 'MSS') {
+    bias = lastEvent.dir;
+    confidence = Math.max(confidence, 1);
+  }
+
+  return {
+    bias, confidence, lastEvent,
+    lastHH: lHigh.slice().reverse().find(h => h.label === 'HH'),
+    lastHL: lLow.slice().reverse().find(l => l.label === 'HL'),
+    lastLH: lHigh.slice().reverse().find(h => h.label === 'LH'),
+    lastLL: lLow.slice().reverse().find(l => l.label === 'LL'),
+  };
 }
 
-function scoreVolume(coin, allCoins) {
-  // Returns {score, badges}
-  // Uses 24h volume rank vs market, volume vs weighted avg as proxy for surge
-  let score=0; const badges=[];
-  const vol=coin.quoteVolume;
-  const marketTotal=allCoins.reduce((s,c)=>s+c.quoteVolume,0);
-  const mktShare=(vol/marketTotal)*100;
-  const rank=allCoins.filter(c=>c.quoteVolume>vol).length+1;
-  const totalCoins=allCoins.length;
-  const rankPct=rank/totalCoins;
+/* ── GATE 2: Premium / Discount using last 150 candles ── */
+function checkPriceLocation(candles, currentPrice, bias) {
+  // Use 150 candles for a meaningful range (not just 50)
+  const slice = candles.slice(-150);
+  const swingLow  = Math.min(...slice.map(c => c.l));
+  const swingHigh = Math.max(...slice.map(c => c.h));
+  const range = swingHigh - swingLow;
+  if (range === 0) return { pass: false, zone: 'UNKNOWN', pct: 50 };
 
-  if(rankPct<=0.01){score+=2;badges.push({txt:`TOP 1% VOLUME #${rank}`,cls:'fired-gold',rank});}
-  else if(rankPct<=0.05){score+=2;badges.push({txt:`TOP 5% VOL #${rank}`,cls:'fired-bull',rank});}
-  else if(rankPct<=0.10){score+=1;badges.push({txt:`TOP 10% VOL #${rank}`,cls:'fired-bull',rank});}
-  else if(rankPct<=0.20){score+=1;badges.push({txt:`TOP 20% VOL #${rank}`,cls:'fired-acc',rank});}
-  else {badges.push({txt:`VOL RANK #${rank}`,cls:'dim',rank});}
+  const pct = (currentPrice - swingLow) / range * 100;
+  let zone = 'EQUILIBRIUM';
+  if (pct < 45)  zone = 'DISCOUNT';
+  if (pct > 55)  zone = 'PREMIUM';
 
-  // Volume spike via price change vs volume: big move + big volume = confirmation
-  const absChange=Math.abs(coin.changePct24h);
-  if(absChange>10&&vol>100000000){score+=1;badges.push({txt:`VOL+MOVE SPIKE ${fPct(coin.changePct24h)}`,cls:coin.changePct24h>0?'fired-bull':'fired-bear'});}
-  else if(absChange>5&&vol>50000000){badges.push({txt:`MOMENTUM ${fPct(coin.changePct24h)}`,cls:coin.changePct24h>0?'fired-bull':'fired-bear'});}
+  // Gate passes when price zone aligns with bias
+  let pass = false;
+  if (bias === 'BULLISH' && zone === 'DISCOUNT') pass = true;
+  if (bias === 'BEARISH' && zone === 'PREMIUM')  pass = true;
+  // Equilibrium is borderline — allow it but mark as weak
+  const borderline = (zone === 'EQUILIBRIUM');
 
-  return {score:Math.min(score,2),badges,rank};
+  // Fib levels for reference
+  const fibs = [0.236, 0.382, 0.5, 0.618, 0.786];
+  const fibLevels = fibs.map(f => ({ fib: f, price: swingLow + range * f, label: (f * 100).toFixed(1) + '%' }));
+
+  // Near golden fibs (0.382 or 0.618)?
+  const nearGolden = fibLevels.find(f =>
+    (Math.abs(f.fib - 0.382) < 0.01 || Math.abs(f.fib - 0.618) < 0.01) &&
+    Math.abs(currentPrice - f.price) / f.price < 0.012
+  );
+
+  return { pass: pass || borderline, strong: pass && !borderline, zone, pct, borderline, nearGolden, swingLow, swingHigh, fibLevels };
 }
 
-function scoreOrderFlow(candles) {
-  // Returns {score, badges}
-  // Looks at recent candle bodies, wicks, and volume distribution
-  if(!candles||candles.length<10) return {score:0,badges:[]};
-  let score=0; const badges=[];
-  const last5=candles.slice(-5);
-  const last10=candles.slice(-10);
+/* ── GATE 3: Is Price AT an SMC Level Right Now? ── */
+function checkPriceAtLevel(candles, currentPrice, bias, eqhEql) {
+  // Order blocks — quality check: strong departure (next candle ≥ 2x body)
+  const obs = detectOrderBlocks(candles, currentPrice);
+  const PROXIMITY = 0.015; // within 1.5% of OB
 
-  // Bullish order flow: more bullish candles, increasing closes, wicks below = buyers
-  const bullCandles5=last5.filter(c=>c.c>c.o).length;
-  const bearCandles5=last5.filter(c=>c.c<c.o).length;
-
-  // Average candle body vs wick ratio — high body = conviction
-  const avgBodyRatio=last5.reduce((sum,c)=>{
-    const body=Math.abs(c.c-c.o);
-    const range=c.h-c.l||0.0001;
-    return sum+body/range;
-  },0)/5;
-
-  // Volume trend: is recent volume above average?
-  const avgVol10=last10.reduce((s,c)=>s+c.v,0)/10;
-  const lastVol=candles[candles.length-1].v;
-  const volRatio=lastVol/avgVol10;
-
-  if(bullCandles5>=4){score+=1;badges.push({txt:`${bullCandles5}/5 BULL CANDLES`,cls:'fired-bull'});}
-  else if(bearCandles5>=4){score+=1;badges.push({txt:`${bearCandles5}/5 BEAR CANDLES`,cls:'fired-bear'});}
-
-  if(avgBodyRatio>0.6){score+=1;badges.push({txt:`HIGH BODY RATIO ${(avgBodyRatio*100).toFixed(0)}%`,cls:'fired-acc'});}
-
-  if(volRatio>2){score+=1;badges.push({txt:`VOL SPIKE ${volRatio.toFixed(1)}x AVG`,cls:'fired-gold'});}
-  else if(volRatio>1.5){badges.push({txt:`VOL ABOVE AVG ${volRatio.toFixed(1)}x`,cls:'fired-acc'});}
-
-  // Last candle: big body with above-avg volume = strong intent
-  const lastC=candles[candles.length-1];
-  const lastBody=Math.abs(lastC.c-lastC.o)/(lastC.h-lastC.l||0.0001);
-  if(lastBody>0.7&&volRatio>1.5){score+=1;badges.push({txt:`STRONG INTENT CANDLE`,cls:lastC.c>lastC.o?'fired-bull':'fired-bear'});}
-
-  return {score:Math.min(score,2),badges};
-}
-
-function scorePriceLocation(pd, extStruct) {
-  // Returns {score, badges}
-  let score=0; const badges=[];
-  if(!pd) return {score:0,badges:[{txt:'NO P/D DATA',cls:'dim'}]};
-
-  const pct=pd.pct;
-  if(pct<25){score+=2;badges.push({txt:`DEEP DISCOUNT ${pct.toFixed(0)}%`,cls:'fired-bull'});}
-  else if(pct<40){score+=1;badges.push({txt:`DISCOUNT ${pct.toFixed(0)}%`,cls:'fired-bull'});}
-  else if(pct>75){score+=2;badges.push({txt:`DEEP PREMIUM ${pct.toFixed(0)}%`,cls:'fired-bear'});}
-  else if(pct>60){score+=1;badges.push({txt:`PREMIUM ${pct.toFixed(0)}%`,cls:'fired-bear'});}
-  else {badges.push({txt:`EQUILIBRIUM ${pct.toFixed(0)}%`,cls:'dim'});}
-
-  // Fib confluence: if price is near 0.618 (golden ratio) or 0.382
-  const nearFib=pd.fibLevels.find(f=>{
-    const fibPct=f.fib*100;
-    return (fibPct===61.8||fibPct===38.2)&&Math.abs(pd.currentPrice-f.price)/f.price<0.015;
+  // For bullish bias — find unmitigated BULL OBs near price
+  const relevantOBs = obs.filter(ob => {
+    const isBull = ob.type === 'BULL_OB';
+    const isBear = ob.type === 'BEAR_OB';
+    if (bias === 'BULLISH' && !isBull) return false;
+    if (bias === 'BEARISH' && !isBear) return false;
+    if (ob.mitigated) return false;
+    // Inside or very close
+    const mid = (ob.high + ob.low) / 2;
+    const dist = Math.abs(currentPrice - mid) / currentPrice;
+    return ob.inside || dist < PROXIMITY;
   });
-  if(nearFib){score+=1;badges.push({txt:`NEAR FIB ${nearFib.label}`,cls:'fired-gold'});}
 
-  // Equal highs/lows confluence: price approaching EQH/EQL = liquidity run potential
-  if(extStruct?._eqhEql){
-    const eqhs=extStruct._eqhEql.eqHighs.filter(e=>!e.swept);
-    const eqls=extStruct._eqhEql.eqLows.filter(e=>!e.swept);
-    const nearEQH=eqhs.find(e=>Math.abs(e.level-pd.currentPrice)/pd.currentPrice<0.03);
-    const nearEQL=eqls.find(e=>Math.abs(e.level-pd.currentPrice)/pd.currentPrice<0.03);
-    if(nearEQH){score+=1;badges.push({txt:`NEAR EQH BSL ${fPrice(nearEQH.level)}`,cls:'fired-bear'});}
-    if(nearEQL){score+=1;badges.push({txt:`NEAR EQL SSL ${fPrice(nearEQL.level)}`,cls:'fired-bull'});}
+  // FVGs — unfilled, correct direction, price inside or approaching
+  const fvgs = detectFVGs(candles, currentPrice);
+  const relevantFVGs = fvgs.filter(f => {
+    if (f.fillStatus === 'FILLED') return false;
+    if (bias === 'BULLISH' && f.type !== 'BULL_FVG') return false;
+    if (bias === 'BEARISH' && f.type !== 'BEAR_FVG') return false;
+    const mid = (f.top + f.bot) / 2;
+    const dist = Math.abs(currentPrice - mid) / currentPrice;
+    return dist < PROXIMITY || (currentPrice >= f.bot && currentPrice <= f.top);
+  });
+
+  // EQH/EQL sweep — price just swept a liquidity pool (within last 5 candles)
+  let recentSweep = null;
+  if (eqhEql) {
+    const last5 = candles.slice(-5);
+    if (bias === 'BULLISH') {
+      // Bullish setup after stop hunt below EQL
+      const swept = eqhEql.eqLows.find(eq => eq.swept && last5.some(c => c.l < eq.level));
+      if (swept) recentSweep = { type: 'EQL_SWEEP', level: swept.level, label: `SSL Swept @ ${fPrice(swept.level)}` };
+    } else {
+      // Bearish setup after stop hunt above EQH
+      const swept = eqhEql.eqHighs.find(eq => eq.swept && last5.some(c => c.h > eq.level));
+      if (swept) recentSweep = { type: 'EQH_SWEEP', level: swept.level, label: `BSL Swept @ ${fPrice(swept.level)}` };
+    }
   }
 
-  return {score:Math.min(score,2),badges};
+  const atLevel = relevantOBs.length > 0 || relevantFVGs.length > 0 || recentSweep !== null;
+  const bestOB  = relevantOBs[0] || null;
+  const bestFVG = relevantFVGs[0] || null;
+
+  // Build level description
+  let levelDesc = '';
+  let levelType = '';
+  if (bestOB) {
+    levelDesc = `${bias === 'BULLISH' ? 'BULL' : 'BEAR'} OB ${fPrice(bestOB.low)}–${fPrice(bestOB.high)}`;
+    levelType = 'OB';
+  } else if (bestFVG) {
+    levelDesc = `${bias === 'BULLISH' ? 'BULL' : 'BEAR'} FVG ${fPrice(bestFVG.bot)}–${fPrice(bestFVG.top)}`;
+    levelType = 'FVG';
+  } else if (recentSweep) {
+    levelDesc = recentSweep.label;
+    levelType = 'SWEEP';
+  }
+
+  return { pass: atLevel, bestOB, bestFVG, recentSweep, levelDesc, levelType, allOBs: relevantOBs, allFVGs: relevantFVGs };
 }
 
-function scoreStructure(extStruct, intStruct, obs, fvgs) {
-  // Returns {score, badges, direction}
-  let score=0; const badges=[]; let dir='NEUTRAL';
+/* ── GATE 4: Entry TF Structure — last 50 candles (strength=2) ── */
+function checkEntryStructure(candles, bias) {
+  const etfCandles = candles.slice(-50);
+  const swings = detectSwings(etfCandles, 2);
+  if (swings.length < 4) return { pass: false, etfBias: 'RANGING', lastEvent: null, internalState: 'UNKNOWN' };
 
-  if(!extStruct) return {score:0,badges:[{txt:'NO STRUCTURE',cls:'dim'}],dir};
+  const highs = swings.filter(s => s.type === 'high');
+  const lows  = swings.filter(s => s.type === 'low');
 
-  // External bias
-  if(extStruct.bias==='BULLISH'){score+=1;badges.push({txt:'EXT BULLISH',cls:'fired-bull'});dir='LONG';}
-  else if(extStruct.bias==='BEARISH'){score+=1;badges.push({txt:'EXT BEARISH',cls:'fired-bear'});dir='SHORT';}
-
-  // MSS is stronger than BOS
-  if(extStruct.lastEvent){
-    const ev=extStruct.lastEvent;
-    if(ev.type==='MSS'){score+=2;badges.push({txt:`MSS ${ev.dir}`,cls:ev.dir==='BULLISH'?'fired-bull':'fired-bear'});if(dir==='NEUTRAL')dir=ev.dir==='BULLISH'?'LONG':'SHORT';}
-    else if(ev.type==='BOS'){score+=1;badges.push({txt:`BOS ${ev.dir}`,cls:ev.dir==='BULLISH'?'fired-bull':'fired-bear'});}
+  const lHigh = [], lLow = [];
+  for (let i = 0; i < highs.length; i++) {
+    if (i === 0) { lHigh.push({ ...highs[i], label: 'SH' }); continue; }
+    lHigh.push({ ...highs[i], label: highs[i].price > highs[i-1].price ? 'HH' : 'LH' });
+  }
+  for (let i = 0; i < lows.length; i++) {
+    if (i === 0) { lLow.push({ ...lows[i], label: 'SL' }); continue; }
+    lLow.push({ ...lows[i], label: lows[i].price > lows[i-1].price ? 'HL' : 'LL' });
   }
 
-  // Internal alignment with external
-  if(intStruct&&intStruct.bias===extStruct.bias&&extStruct.bias!=='RANGING'){
-    score+=1;badges.push({txt:`INT ALIGNED ${intStruct.bias}`,cls:intStruct.bias==='BULLISH'?'fired-bull':'fired-bear'});
-  } else if(intStruct&&intStruct.bias!==extStruct.bias&&extStruct.bias!=='RANGING'){
-    badges.push({txt:`INT PULLBACK`,cls:'fired-acc'});
+  const lastH = lHigh.slice(-3), lastL = lLow.slice(-3);
+  const hhCount = lastH.filter(h => h.label === 'HH').length;
+  const hlCount = lastL.filter(l => l.label === 'HL').length;
+  const lhCount = lastH.filter(h => h.label === 'LH').length;
+  const llCount = lastL.filter(l => l.label === 'LL').length;
+
+  let etfBias = 'RANGING';
+  if (hhCount >= 1 && hlCount >= 1) etfBias = 'BULLISH';
+  else if (llCount >= 1 && lhCount >= 1) etfBias = 'BEARISH';
+
+  // Find last BOS/MSS on entry TF
+  const allPoints = [...lHigh, ...lLow].sort((a, b) => a.idx - b.idx);
+  const events = [];
+  for (let i = 1; i < allPoints.length; i++) {
+    const pt = allPoints[i];
+    if (pt.label === 'HH') {
+      const prevH = lHigh.find(h => h.idx < pt.idx);
+      if (prevH) events.push({ type: 'BOS', dir: 'BULLISH', price: pt.price, idx: pt.idx });
+      const lastLH = lHigh.slice().reverse().find(h => h.label === 'LH' && h.idx < pt.idx);
+      if (lastLH && etfBias === 'BEARISH') events.push({ type: 'MSS', dir: 'BULLISH', price: lastLH.price, idx: pt.idx });
+    }
+    if (pt.label === 'LL') {
+      const prevL = lLow.find(l => l.idx < pt.idx);
+      if (prevL) events.push({ type: 'BOS', dir: 'BEARISH', price: pt.price, idx: pt.idx });
+      const lastHL = lLow.slice().reverse().find(l => l.label === 'HL' && l.idx < pt.idx);
+      if (lastHL && etfBias === 'BULLISH') events.push({ type: 'MSS', dir: 'BEARISH', price: lastHL.price, idx: pt.idx });
+    }
   }
 
-  // Active unmitigated OBs near price
-  const activeOBs=obs.filter(o=>!o.mitigated&&Math.abs(o.distPct)<3);
-  if(activeOBs.length){score+=1;badges.push({txt:`${activeOBs.length} OB NEAR PRICE`,cls:'fired-acc'});}
+  const lastEvent = events.length ? events[events.length - 1] : null;
+  if (lastEvent && lastEvent.type === 'MSS') {
+    etfBias = lastEvent.dir;
+  }
 
-  // Unfilled FVGs near price
-  const activeFVGs=fvgs.filter(f=>f.fillStatus!=='FILLED'&&Math.abs(f.distPct)<3);
-  if(activeFVGs.length){score+=1;badges.push({txt:`${activeFVGs.length} FVG OPEN`,cls:'fired-acc'});}
+  // Gate passes when ETF structure agrees with HTF bias
+  const pass = etfBias === bias;
 
-  return {score:Math.min(score,2),badges,dir};
+  // Internal structure state (last 15 candles, strength 1)
+  const intCandles = candles.slice(-15);
+  const intSwings  = detectSwings(intCandles, 1);
+  const intHighs   = intSwings.filter(s => s.type === 'high');
+  const intLows    = intSwings.filter(s => s.type === 'low');
+  let intBias = 'RANGING';
+  if (intHighs.length >= 2 && intLows.length >= 2) {
+    const lastIH = intHighs[intHighs.length - 1], prevIH = intHighs[intHighs.length - 2];
+    const lastIL = intLows[intLows.length - 1],   prevIL = intLows[intLows.length - 2];
+    if (lastIH.price > prevIH.price && lastIL.price > prevIL.price) intBias = 'BULLISH';
+    else if (lastIH.price < prevIH.price && lastIL.price < prevIL.price) intBias = 'BEARISH';
+  }
+
+  // Internal state relative to HTF bias
+  let internalState = 'UNKNOWN';
+  if (intBias === bias) internalState = 'ALIGNED';         // continuing in direction — good for entries already moving
+  else if (intBias !== 'RANGING') internalState = 'PULLBACK'; // pulling back against bias — BEST entry window
+  else internalState = 'RANGING';
+
+  return { pass, etfBias, lastEvent, internalState, intBias };
 }
 
+/* ── DERIVATIVES CONFIRMATION (cherry on top) ── */
+function checkDerivatives(coin, bias) {
+  const fr = coin.fundingRate;
+  const oiVal = coin.oiValue;
+  const vol = coin.quoteVolume;
+
+  let agreement = 'NEUTRAL'; // CONFIRM / CONFLICT / NEUTRAL
+  let strength = 0;           // 0=neutral, 1=mild, 2=strong
+  const signals = [];
+
+  if (fr != null) {
+    const frPct = fr * 100;
+    // Funding positive = longs paying = crowd is LONG = fade = bearish
+    // Funding negative = shorts paying = crowd is SHORT = fade = bullish
+    if (frPct > 0.08) {
+      // Extreme positive funding
+      if (bias === 'BEARISH') { agreement = 'CONFIRM'; strength = 2; signals.push({ txt: `FR +${frPct.toFixed(3)}% EXTREME — longs squeezed`, cls: 'fired-bear' }); }
+      else                    { agreement = 'CONFLICT'; strength = 2; signals.push({ txt: `FR +${frPct.toFixed(3)}% vs LONG bias — crowd agrees = risky`, cls: 'conflict' }); }
+    } else if (frPct > 0.04) {
+      if (bias === 'BEARISH') { agreement = 'CONFIRM'; strength = 1; signals.push({ txt: `FR +${frPct.toFixed(3)}% HIGH — shorts fuel move`, cls: 'fired-bear' }); }
+      else                    { agreement = 'CONFLICT'; strength = 1; signals.push({ txt: `FR +${frPct.toFixed(3)}% — longs crowded, risky long`, cls: 'conflict' }); }
+    } else if (frPct < -0.08) {
+      if (bias === 'BULLISH') { agreement = 'CONFIRM'; strength = 2; signals.push({ txt: `FR ${frPct.toFixed(3)}% EXTREME — shorts squeezed`, cls: 'fired-bull' }); }
+      else                    { agreement = 'CONFLICT'; strength = 2; signals.push({ txt: `FR ${frPct.toFixed(3)}% vs SHORT bias — crowd agrees = risky`, cls: 'conflict' }); }
+    } else if (frPct < -0.04) {
+      if (bias === 'BULLISH') { agreement = 'CONFIRM'; strength = 1; signals.push({ txt: `FR ${frPct.toFixed(3)}% HIGH NEG — longs fuel move`, cls: 'fired-bull' }); }
+      else                    { agreement = 'CONFLICT'; strength = 1; signals.push({ txt: `FR ${frPct.toFixed(3)}% — shorts crowded, risky short`, cls: 'conflict' }); }
+    } else {
+      signals.push({ txt: `FR ${frPct.toFixed(3)}% NEUTRAL`, cls: 'dim' });
+    }
+  }
+
+  // OI context — high OI at a key level = big liquidation potential
+  if (oiVal && vol) {
+    const ratio = oiVal / vol;
+    if (oiVal > 500000000) { strength = Math.min(strength + 1, 2); signals.push({ txt: `OI $${fNum(oiVal)} MASSIVE — big liquidation risk`, cls: 'fired-gold' }); }
+    else if (ratio > 5)    { strength = Math.min(strength + 1, 2); signals.push({ txt: `OI/VOL ${ratio.toFixed(1)}x HIGH LEVERAGE`, cls: 'fired-gold' }); }
+  }
+
+  return { agreement, strength, signals, fundingRate: fr, oiValue: oiVal };
+}
+
+/* ── VOLUME CONTEXT (informational, not a gate) ── */
+function getVolumeContext(coin, allCoins) {
+  const rank = allCoins.filter(c => c.quoteVolume > coin.quoteVolume).length + 1;
+  const rankPct = rank / allCoins.length;
+  let tier = 'low';
+  let badge = null;
+  if (rankPct <= 0.01) { tier = 'elite'; badge = { txt: `TOP 1% VOL #${rank}`, cls: 'fired-gold' }; }
+  else if (rankPct <= 0.05) { tier = 'high';  badge = { txt: `TOP 5% VOL #${rank}`, cls: 'fired-bull' }; }
+  else if (rankPct <= 0.15) { tier = 'mid';   badge = { txt: `TOP 15% VOL #${rank}`, cls: 'fired-acc' }; }
+  else { badge = { txt: `VOL #${rank}`, cls: 'dim' }; }
+
+  // Momentum spike
+  const absChg = Math.abs(coin.changePct24h);
+  let spikeBadge = null;
+  if (absChg > 10 && coin.quoteVolume > 100000000) spikeBadge = { txt: `VOL SPIKE ${fPct(coin.changePct24h)}`, cls: coin.changePct24h > 0 ? 'fired-bull' : 'fired-bear' };
+
+  return { rank, rankPct, tier, badge, spikeBadge };
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   MAIN SCANNER RUNNER — runSmcMarketScan
+═══════════════════════════════════════════════════════════════ */
 async function runSmcMarketScan() {
-  $('smc-market-empty').style.display='none';
-  $('smc-market-results').style.display='none';
-  $('smc-market-loading').style.display='flex';
-  $('smc-market-loader-text').textContent='FETCHING MARKET DATA...';
-  $('smc-market-progress').style.display='none';
-  $('smc-market-stats-bar').style.display='none';
+  $('smc-market-empty').style.display = 'none';
+  $('smc-market-results').style.display = 'none';
+  $('smc-market-loading').style.display = 'flex';
+  $('smc-market-loader-text').textContent = 'FETCHING MARKET DATA...';
+  $('smc-market-progress').style.display = 'none';
+  $('smc-market-stats-bar').style.display = 'none';
   $('smc-market-fetch-btn').classList.add('loading');
-  setStatus('loading','SMC SCANNING');
+  setStatus('loading', 'SMC SCANNING');
   onScanStart('SMC MARKET SCAN');
 
-  const tf=STATE.smcMarketTf;
+  const tf = STATE.smcMarketTf;
 
   try {
-    // ── PHASE 1: Full market ticker fetch (SMC + Derivatives in one call) ──
-    $('smc-market-loader-text').textContent='PHASE 1 — FETCHING FULL MARKET TICKERS + DERIVATIVES...';
+    // ── PHASE 1: Full market fetch ──
+    $('smc-market-loader-text').textContent = 'PHASE 1 — FETCHING FULL MARKET TICKERS...';
     let allCoins;
     try {
-      if(STATE.smcMarketSrc==='binance') allCoins=await fetchAllBinance();
-      else allCoins=await fetchAllBybit();
-    } catch(_){
-      try { allCoins=STATE.smcMarketSrc==='binance'?await fetchAllBybit():await fetchAllBinance(); }
-      catch(e2){ throw new Error('Could not fetch market data: '+e2.message); }
+      allCoins = STATE.smcMarketSrc === 'binance' ? await fetchAllBinance() : await fetchAllBybit();
+    } catch (_) {
+      try { allCoins = STATE.smcMarketSrc === 'binance' ? await fetchAllBybit() : await fetchAllBinance(); }
+      catch (e2) { throw new Error('Could not fetch market data: ' + e2.message); }
     }
 
-    // Sort by volume descending, keep all liquid coins (>$50k 24h vol), cap at top 300
-    allCoins.sort((a,b)=>b.quoteVolume-a.quoteVolume);
-    const liquidCoins=allCoins.filter(c=>c.quoteVolume>50000);
+    allCoins.sort((a, b) => b.quoteVolume - a.quoteVolume);
+    const liquidCoins = allCoins.filter(c => c.quoteVolume > 50000);
 
-    // ── PHASE 2: Score derivatives + volume for all liquid coins (no pre-filter gate) ──
-    // Previously a _preScore>=1 gate was here — removed because on Binance fundingRate
-    // was null for all coins causing random, inconsistent coin counts per scan.
-    // All liquid coins now proceed to kline analysis. Derivatives are scored correctly
-    // now that fetchAllBinance enriches funding rates from the premiumIndex batch endpoint.
-    $('smc-market-loader-text').textContent=`PHASE 2 — SCORING ${liquidCoins.length} COINS (DERIVATIVES + VOLUME)...`;
-    const klineCandidates=liquidCoins.map(coin=>{
-      const deriv=scoreDerivatives(coin);
-      const vol=scoreVolume(coin,liquidCoins);
-      return {...coin, _derivScore:deriv.score, _derivBadges:deriv.badges, _volScore:vol.score, _volBadges:vol.badges, _volRank:vol.rank};
-    });
+    $('smc-market-loader-text').textContent = `PHASE 2 — PRE-SCORING ${liquidCoins.length} COINS...`;
 
-    $('smc-market-loading').style.display='none';
-    $('smc-market-progress').style.display='block';
+    // Pre-compute volume context for all coins (needs full list for ranking)
+    const volContextMap = {};
+    liquidCoins.forEach(coin => { volContextMap[coin.symbol] = getVolumeContext(coin, liquidCoins); });
 
-    // ── PHASE 3: Kline fetch in parallel batches + full SMC engine ──
-    // Fetch klines in batches of 10 simultaneously (rate-limit safe, much faster than serial)
+    $('smc-market-loading').style.display = 'none';
+    $('smc-market-progress').style.display = 'block';
+
+    // ── PHASE 3: Kline fetch + 4-Gate SMC Engine in parallel batches ──
     const BATCH_SIZE = 10;
-    const results=[];
-    for(let i=0;i<klineCandidates.length;i+=BATCH_SIZE){
-      const batch=klineCandidates.slice(i,i+BATCH_SIZE);
-      const pct=Math.min(100,(i/klineCandidates.length*100)).toFixed(0);
-      $('smc-progress-bar').style.width=pct+'%';
-      $('smc-progress-text').textContent=`Phase 3 — SMC Analysis: ${Math.min(i+BATCH_SIZE,klineCandidates.length)} / ${klineCandidates.length} (${pct}%)`;
+    const results = [];
 
-      // Fetch all klines in this batch in parallel
-      const batchCandles=await Promise.allSettled(
-        batch.map(coin=>fetchKline(coin.symbol+'USDT',tf,60))
+    for (let i = 0; i < liquidCoins.length; i += BATCH_SIZE) {
+      const batch = liquidCoins.slice(i, i + BATCH_SIZE);
+      const pct = Math.min(100, (i / liquidCoins.length * 100)).toFixed(0);
+      $('smc-progress-bar').style.width = pct + '%';
+      $('smc-progress-text').textContent = `SMC Gate Analysis: ${Math.min(i + BATCH_SIZE, liquidCoins.length)} / ${liquidCoins.length} coins (${pct}%)`;
+
+      // Fetch 200 candles per coin in parallel
+      const batchCandles = await Promise.allSettled(
+        batch.map(coin => fetchKline(coin.symbol + 'USDT', tf, 200))
       );
 
-      for(let j=0;j<batch.length;j++){
-        const coin=batch[j];
-        const symbol=coin.symbol+'USDT';
-      try {
-        const candles=batchCandles[j].status==='fulfilled'?batchCandles[j].value:null;
-        if(!candles||candles.length<15){continue;}
-        const cp=candles[candles.length-1].c;
+      for (let j = 0; j < batch.length; j++) {
+        const coin = batch[j];
+        try {
+          const candles = batchCandles[j].status === 'fulfilled' ? batchCandles[j].value : null;
+          if (!candles || candles.length < 50) continue;
+          const cp = candles[candles.length - 1].c;
+          const volCtx = volContextMap[coin.symbol];
 
-        // Run full SMC engine
-        const extSwings=detectSwings(candles,2);
-        const intSwings=detectSwings(candles.slice(-20),1);
-        const extStruct=classifyStructure(extSwings,candles,cp);
-        const intStruct=classifyStructure(intSwings,candles.slice(-20),cp);
-        const obs=detectOrderBlocks(candles,cp);
-        const fvgs=detectFVGs(candles,cp);
-        const pd=calcPremiumDiscount(candles,cp);
-        const eqhEql=detectEQHEQL(extSwings,candles,cp);
-        if(extStruct) extStruct._eqhEql=eqhEql;
+          // ── GATE 1: HTF Bias ──
+          const htf = checkHTFBias(candles);
+          if (htf.bias === 'RANGING') continue; // No clear trend — skip
 
-        // ── Score all 5 pillars ──
-        const structScore=scoreStructure(extStruct,intStruct,obs,fvgs);
-        const locScore=scorePriceLocation(pd,extStruct);
-        const flowScore=scoreOrderFlow(candles);
-        const derivScore={score:coin._derivScore,badges:coin._derivBadges};
-        const volScore={score:coin._volScore,badges:coin._volBadges};
+          // ── GATE 2: Price Location ──
+          const loc = checkPriceLocation(candles, cp, htf.bias);
+          if (!loc.pass) continue; // Wrong zone — balloon already popped or wrong side
 
-        const totalScore=structScore.score+locScore.score+flowScore.score+derivScore.score+volScore.score;
+          // ── GATE 3: Price AT an SMC Level ──
+          const eqhEql = detectEQHEQL(detectSwings(candles.slice(-150), 3), candles, cp);
+          const atLevel = checkPriceAtLevel(candles, cp, htf.bias, eqhEql);
+          if (!atLevel.pass) continue; // Not at any OB/FVG/sweep — floating in air
 
-        // ── Determine direction ──
-        // Use structure direction as primary, validate with derivatives
-        let direction=structScore.dir;
-        // Derivatives can override direction if extreme (e.g. extreme positive funding = SHORT bias)
-        const derivDir=derivScore.badges.find(b=>b.dir&&b.dir!=='BOTH'&&b.dir!=='NEUTRAL');
-        if(derivDir&&totalScore>=6) direction=derivDir.dir;
-        // Fallback if still neutral
-        if(direction==='NEUTRAL'){
-          if(locScore.badges.find(b=>b.cls==='fired-bull')) direction='LONG';
-          else if(locScore.badges.find(b=>b.cls==='fired-bear')) direction='SHORT';
-        }
+          // ── GATE 4: Entry TF Structure ──
+          const etf = checkEntryStructure(candles, htf.bias);
+          if (!etf.pass) continue; // Entry TF structure disagrees with HTF
 
-        // ── Minimum threshold: score ≥ 4 AND at least 2 pillars firing ──
-        const firingPillars=[structScore,locScore,flowScore,derivScore,volScore].filter(p=>p.score>0).length;
-        if(totalScore<4||firingPillars<2) continue;
-        if(direction==='NEUTRAL') continue;
+          // ── ALL 4 GATES PASSED — this coin is interesting ──
 
-        // Tier
-        const tier=totalScore>=8?'elite':totalScore>=6?'high':totalScore>=4?'mid':'low';
+          // Derivatives confirmation
+          const deriv = checkDerivatives(coin, htf.bias);
 
-        // Build confluence narrative (top 3 most impactful badges)
-        const allBadges=[
-          ...structScore.badges.map(b=>({...b,pillar:'STRUCT'})),
-          ...locScore.badges.map(b=>({...b,pillar:'LOCATION'})),
-          ...flowScore.badges.map(b=>({...b,pillar:'FLOW'})),
-          ...derivScore.badges.map(b=>({...b,pillar:'DERIV'})),
-          ...volScore.badges.map(b=>({...b,pillar:'VOL'})),
-        ].filter(b=>b.cls!=='dim');
+          // ── GRADE THE SETUP ──
+          // A+ ELITE: pullback setting up entry + derivatives confirm
+          // A  HIGH:  derivatives confirm OR internal aligned
+          // B  WATCH: derivatives neutral or borderline location
+          // ⚠ CONFLICT: derivatives strongly disagree
 
-        // Key reason: pick the single most impactful signal
-        const keyBadge=allBadges.find(b=>b.cls==='fired-gold')||allBadges.find(b=>b.cls==='fired-bull'||b.cls==='fired-bear')||allBadges[0];
-        const keyReason=keyBadge?`${keyBadge.pillar}: ${keyBadge.txt}`:'Multi-factor confluence detected';
+          let grade, gradeLabel, gradeCls;
 
-        results.push({
-          symbol:coin.symbol,
-          price:cp,
-          changePct24h:coin.changePct24h,
-          quoteVolume:coin.quoteVolume,
-          volRank:coin._volRank,
-          fundingRate:coin.fundingRate,
-          openInterest:coin.openInterest,
-          oiValue:coin.oiValue,
-          extBias:extStruct?.bias||'RANGING',
-          intBias:intStruct?.bias||'RANGING',
-          pdZone:pd?.zone||'UNKNOWN',
-          pdPct:pd?.pct||50,
-          direction,
-          totalScore,
-          tier,
-          firingPillars,
-          scores:{struct:structScore.score,loc:locScore.score,flow:flowScore.score,deriv:derivScore.score,vol:volScore.score},
-          allBadges,
-          keyReason,
-          activeOBs:obs.filter(o=>!o.mitigated).length,
-          unfilledFVGs:fvgs.filter(f=>f.fillStatus!=='FILLED').length,
-        });
-      } catch(_){ /* skip */ }
-      } // end inner coin loop
+          if (deriv.agreement === 'CONFLICT' && deriv.strength >= 2) {
+            grade = 'CONFLICT'; gradeLabel = '⚠ CONFLICT'; gradeCls = 'conflict-setup';
+          } else if (etf.internalState === 'PULLBACK' && deriv.agreement === 'CONFIRM') {
+            grade = 'ELITE'; gradeLabel = '★ A+ ELITE'; gradeCls = 'elite-setup';
+          } else if (deriv.agreement === 'CONFIRM' || (etf.internalState === 'ALIGNED' && deriv.strength >= 0)) {
+            grade = 'HIGH'; gradeLabel = 'A HIGH'; gradeCls = 'long-setup';
+          } else {
+            grade = 'WATCH'; gradeLabel = 'B WATCH'; gradeCls = 'watch-setup';
+          }
 
-      // Small inter-batch delay to avoid rate limiting
-      await new Promise(r=>setTimeout(r,120));
-    } // end outer batch loop
+          // Override card direction colour by bias
+          const dirCardCls = (htf.bias === 'BULLISH' ? 'long-setup' : 'short-setup');
 
-    STATE.smcMarketData=results;
-    $('smc-market-progress').style.display='none';
+          // Build narrative — what the trader needs to know
+          const narrativeParts = [];
+          narrativeParts.push(`HTF ${htf.bias} (${htf.confidence === 2 ? 'strong' : 'moderate'} structure)`);
+          narrativeParts.push(`Location: ${loc.zone} ${loc.pct.toFixed(0)}%${loc.borderline ? ' (borderline)' : ''}`);
+          narrativeParts.push(`AT: ${atLevel.levelType} — ${atLevel.levelDesc}`);
+          if (etf.lastEvent) narrativeParts.push(`ETF: ${etf.lastEvent.type} ${etf.lastEvent.dir}`);
+          narrativeParts.push(`Internal: ${etf.internalState}`);
+          if (deriv.agreement !== 'NEUTRAL') narrativeParts.push(`Derivatives: ${deriv.agreement}${deriv.strength >= 2 ? ' (STRONG)' : ''}`);
+          if (loc.nearGolden) narrativeParts.push(`Near Fib ${loc.nearGolden.label}`);
 
-    // Stats
-    const longCount=results.filter(r=>r.direction==='LONG').length;
-    const shortCount=results.filter(r=>r.direction==='SHORT').length;
-    const avgScore=results.length?+(results.reduce((s,r)=>s+r.totalScore,0)/results.length).toFixed(1):0;
-    $('smc-scan-count').textContent=klineCandidates.length+' COINS SCANNED';
-    $('smc-setups-count').textContent=results.length+' QUALIFIED';
-    $('smc-long-count').textContent=longCount+' LONG';
-    $('smc-short-count').textContent=shortCount+' SHORT';
-    $('smc-avg-score').textContent=avgScore+'/10 AVG';
-    $('smc-scan-updated').textContent=nowStr();
-    $('smc-market-stats-bar').style.display='flex';
-    $('smc-market-results').style.display='block';
+          // Action hint
+          let actionHint = '';
+          if (etf.internalState === 'PULLBACK' && htf.bias === 'BULLISH')
+            actionHint = 'Internal bearish pullback in bullish structure. Watch for internal MSS → bullish flip = entry trigger.';
+          else if (etf.internalState === 'PULLBACK' && htf.bias === 'BEARISH')
+            actionHint = 'Internal bullish pullback in bearish structure. Watch for internal MSS → bearish flip = entry trigger.';
+          else if (etf.internalState === 'ALIGNED')
+            actionHint = 'Structure aligned across timeframes. Momentum continuation likely — wait for retest of nearest OB/FVG.';
+          else
+            actionHint = 'Monitor for entry TF structure confirmation before committing.';
+
+          if (deriv.agreement === 'CONFLICT')
+            actionHint = '⚠ DERIVATIVES CONFLICT: Funding rate opposes direction. High risk. Watch only — do not enter until funding normalises.';
+
+          // All active badges for display
+          const badges = [];
+          if (volCtx.badge && volCtx.badge.cls !== 'dim') badges.push(volCtx.badge);
+          if (volCtx.spikeBadge) badges.push(volCtx.spikeBadge);
+          deriv.signals.filter(s => s.cls !== 'dim').forEach(s => badges.push(s));
+          if (atLevel.levelType === 'OB') badges.push({ txt: `AT ${htf.bias === 'BULLISH' ? 'BULL' : 'BEAR'} OB`, cls: htf.bias === 'BULLISH' ? 'fired-bull' : 'fired-bear' });
+          if (atLevel.levelType === 'FVG') badges.push({ txt: `AT ${htf.bias === 'BULLISH' ? 'BULL' : 'BEAR'} FVG`, cls: htf.bias === 'BULLISH' ? 'fired-bull' : 'fired-bear' });
+          if (atLevel.levelType === 'SWEEP') badges.push({ txt: atLevel.recentSweep.label, cls: 'fired-gold' });
+          if (htf.confidence === 2) badges.push({ txt: 'STRONG HTF STRUCTURE', cls: htf.bias === 'BULLISH' ? 'fired-bull' : 'fired-bear' });
+          if (etf.internalState === 'PULLBACK') badges.push({ txt: 'PULLBACK — ENTRY WINDOW', cls: 'fired-gold' });
+          if (loc.nearGolden) badges.push({ txt: `FIB ${loc.nearGolden.label} CONFLUENCE`, cls: 'fired-gold' });
+
+          results.push({
+            symbol: coin.symbol,
+            price: cp,
+            changePct24h: coin.changePct24h,
+            quoteVolume: coin.quoteVolume,
+            fundingRate: coin.fundingRate,
+            oiValue: coin.oiValue,
+            direction: htf.bias === 'BULLISH' ? 'LONG' : 'SHORT',
+            grade, gradeLabel, gradeCls, dirCardCls,
+            htfBias: htf.bias,
+            htfConfidence: htf.confidence,
+            htfLastEvent: htf.lastEvent,
+            locationZone: loc.zone,
+            locationPct: loc.pct,
+            locationBorderline: loc.borderline,
+            levelType: atLevel.levelType,
+            levelDesc: atLevel.levelDesc,
+            etfBias: etf.etfBias,
+            etfLastEvent: etf.lastEvent,
+            internalState: etf.internalState,
+            derivAgreement: deriv.agreement,
+            derivStrength: deriv.strength,
+            derivSignals: deriv.signals,
+            volRank: volCtx.rank,
+            volTier: volCtx.tier,
+            badges: badges.slice(0, 6),
+            narrative: narrativeParts.join(' · '),
+            actionHint,
+            activeOBs: atLevel.allOBs.length,
+            activeFVGs: atLevel.allFVGs.length,
+          });
+        } catch (_) { /* skip silently */ }
+      }
+
+      await new Promise(r => setTimeout(r, 120)); // inter-batch pause
+    }
+
+    STATE.smcMarketData = results;
+    $('smc-market-progress').style.display = 'none';
+
+    const longCount     = results.filter(r => r.direction === 'LONG').length;
+    const shortCount    = results.filter(r => r.direction === 'SHORT').length;
+    const eliteCount    = results.filter(r => r.grade === 'ELITE').length;
+    const conflictCount = results.filter(r => r.grade === 'CONFLICT').length;
+
+    $('smc-scan-count').textContent    = liquidCoins.length + ' COINS SCANNED';
+    $('smc-setups-count').textContent  = results.length + ' QUALIFIED';
+    $('smc-long-count').textContent    = longCount + ' LONG';
+    $('smc-short-count').textContent   = shortCount + ' SHORT';
+    $('smc-avg-score').textContent     = eliteCount + ' ELITE · ' + conflictCount + ' CONFLICT';
+    $('smc-scan-updated').textContent  = nowStr();
+    $('smc-market-stats-bar').style.display = 'flex';
+    $('smc-market-results').style.display = 'block';
 
     renderSmcMarketCards();
-    setStatus('ok','SMC SCAN DONE');
-    onScanComplete('SMC MARKET SCAN DONE',`${klineCandidates.length} coins scanned · ${results.length} qualified · ${longCount} long, ${shortCount} short setups found.`);
-  } catch(e){
-    $('smc-market-progress').style.display='none';
-    $('smc-market-loading').style.display='none';
-    $('smc-market-empty').style.display='flex';
-    $('smc-market-empty').querySelector('.empty-title').textContent='SCAN FAILED';
-    $('smc-market-empty').querySelector('.empty-sub').textContent=e.message;
-    setStatus('error','ERROR');
+    setStatus('ok', 'SMC SCAN DONE');
+    onScanComplete('SMC SCAN DONE', `${liquidCoins.length} scanned · ${results.length} passed all 4 gates · ${longCount} long, ${shortCount} short`);
+
+  } catch (e) {
+    $('smc-market-progress').style.display = 'none';
+    $('smc-market-loading').style.display = 'none';
+    $('smc-market-empty').style.display = 'flex';
+    $('smc-market-empty').querySelector('.empty-title').textContent = 'SCAN FAILED';
+    $('smc-market-empty').querySelector('.empty-sub').textContent = e.message;
+    setStatus('error', 'ERROR');
     onScanError('SMC MARKET SCAN');
   }
   $('smc-market-fetch-btn').classList.remove('loading');
 }
 
+/* ══════════════════════════════════════════════════════════════
+   RENDER MARKET SCAN CARDS — new gate-based design
+══════════════════════════════════════════════════════════════ */
 function renderSmcMarketCards() {
-  const container=$('smc-scan-cards');
-  let data=[...STATE.smcMarketData];
-  const f=STATE.smcMarketFilter;
-  const s=STATE.smcMarketSort||'score';
+  const container = $('smc-scan-cards');
+  let data = [...STATE.smcMarketData];
+  const f = STATE.smcMarketFilter;
+  const s = STATE.smcMarketSort || 'score';
 
   // Filter
-  if(f==='long')  data=data.filter(d=>d.direction==='LONG');
-  else if(f==='short') data=data.filter(d=>d.direction==='SHORT');
-  else if(f==='watch') data=data.filter(d=>d.totalScore>=4&&d.totalScore<6);
-  else if(f==='elite') data=data.filter(d=>d.tier==='elite');
+  if (f === 'long')     data = data.filter(d => d.direction === 'LONG');
+  else if (f === 'short')  data = data.filter(d => d.direction === 'SHORT');
+  else if (f === 'watch')  data = data.filter(d => d.grade === 'WATCH');
+  else if (f === 'elite')  data = data.filter(d => d.grade === 'ELITE');
 
   // Sort
-  if(s==='volume')      data.sort((a,b)=>b.quoteVolume-a.quoteVolume);
-  else if(s==='change') data.sort((a,b)=>Math.abs(b.changePct24h)-Math.abs(a.changePct24h));
-  else data.sort((a,b)=>b.totalScore-a.totalScore);
+  const gradeOrder = { ELITE: 0, HIGH: 1, WATCH: 2, CONFLICT: 3 };
+  if (s === 'volume')      data.sort((a, b) => b.quoteVolume - a.quoteVolume);
+  else if (s === 'change') data.sort((a, b) => Math.abs(b.changePct24h) - Math.abs(a.changePct24h));
+  else data.sort((a, b) => (gradeOrder[a.grade] ?? 9) - (gradeOrder[b.grade] ?? 9));
 
-  if(!data.length){
-    container.innerHTML=`<div class="smc-scan-empty" style="grid-column:1/-1;text-align:center;padding:60px 20px;font-family:var(--font-mono);font-size:0.75rem;color:var(--text-dim);letter-spacing:2px;">NO SETUPS MATCH CURRENT FILTER — TRY "ALL SETUPS"</div>`;
+  if (!data.length) {
+    container.innerHTML = `<div class="smc-scan-empty" style="grid-column:1/-1;text-align:center;padding:60px 20px;font-family:var(--font-mono);font-size:0.75rem;color:var(--text-dim);letter-spacing:2px;">NO SETUPS MATCH CURRENT FILTER — TRY "ALL SETUPS"</div>`;
     return;
   }
 
-  container.innerHTML=data.map(d=>{
-    const dir=d.direction;
-    const cardCls=(dir==='LONG'?'long-setup':'short-setup')+(d.tier==='elite'?' elite-setup':'');
-    const tagCls=dir==='LONG'?'long-setup':'short-setup';
-    const tagTxt=dir==='LONG'?'▲ LONG':'▼ SHORT';
-    const tierCls=d.tier;
-    const tierLabel=d.tier==='elite'?'★ ELITE':d.tier==='high'?'HIGH':d.tier==='mid'?'MID':'WATCH';
-    const chgCls=d.changePct24h>=0?'bull':'bear';
-    const pdClr=d.pdZone==='DISCOUNT'?'var(--bull)':d.pdZone==='PREMIUM'?'var(--bear)':'var(--accent)';
-    const barPct=((d.totalScore/10)*100).toFixed(0);
-    const frStr=d.fundingRate!=null?fRate(d.fundingRate):'—';
-    const frCls=d.fundingRate>0.04?'bear':d.fundingRate<-0.04?'bull':'neutral';
+  container.innerHTML = data.map(d => {
+    const isLong      = d.direction === 'LONG';
+    const isElite     = d.grade === 'ELITE';
+    const isConflict  = d.grade === 'CONFLICT';
+    const dirColor    = isLong ? 'var(--bull)' : 'var(--bear)';
+    const chgCls      = d.changePct24h >= 0 ? 'bull' : 'bear';
+    const frStr       = d.fundingRate != null ? fRate(d.fundingRate) : '—';
+    const frCls       = d.fundingRate > 0.04 ? 'bear' : d.fundingRate < -0.04 ? 'bull' : 'neutral';
 
-    // Pillar score mini-bars
-    const pillars=[
-      {label:'STRUCT', score:d.scores.struct,max:2},
-      {label:'LOCATION',score:d.scores.loc,max:2},
-      {label:'FLOW',  score:d.scores.flow,max:2},
-      {label:'DERIV', score:d.scores.deriv,max:2},
-      {label:'VOL',   score:d.scores.vol,max:2},
+    // Grade pill colours
+    const gradeColor = isElite ? 'var(--gold)' : d.grade === 'HIGH' ? 'var(--bull)' : isConflict ? 'var(--bear)' : 'var(--orange)';
+    const gradeBg    = isElite ? 'rgba(255,213,79,0.12)' : d.grade === 'HIGH' ? 'rgba(0,230,118,0.1)' : isConflict ? 'rgba(255,61,87,0.12)' : 'rgba(255,152,0,0.1)';
+
+    // Gate status row
+    const gates = [
+      { label: 'HTF BIAS',  pass: true,        note: d.htfBias + (d.htfConfidence === 2 ? ' ●●' : ' ●○') },
+      { label: 'LOCATION',  pass: !d.locationBorderline, note: d.locationZone + ' ' + d.locationPct.toFixed(0) + '%' },
+      { label: 'AT LEVEL',  pass: true,        note: d.levelType },
+      { label: 'ETF STRUCT',pass: true,        note: d.etfBias + (d.etfLastEvent ? ' ' + d.etfLastEvent.type : '') },
     ];
-    const pillarHTML=pillars.map(p=>{
-      const pct=(p.score/p.max*100).toFixed(0);
-      const clr=p.score>=2?'var(--bull)':p.score>=1?'var(--orange)':'var(--border)';
-      return `<div style="flex:1;min-width:0;">
-        <div style="font-family:var(--font-mono);font-size:0.45rem;color:var(--text-dim);letter-spacing:0.5px;margin-bottom:2px;text-align:center;">${p.label}</div>
-        <div style="height:3px;background:var(--border);border-radius:2px;overflow:hidden;">
-          <div style="height:100%;width:${pct}%;background:${clr};border-radius:2px;"></div>
-        </div>
-      </div>`;
-    }).join('');
+    const gateHTML = gates.map(g => `
+      <div style="flex:1;min-width:0;text-align:center;">
+        <div style="font-family:var(--font-mono);font-size:0.42rem;color:var(--text-dim);letter-spacing:0.5px;margin-bottom:2px;">${g.label}</div>
+        <div style="font-family:var(--font-mono);font-size:0.5rem;color:${g.pass ? 'var(--bull)' : 'var(--orange)'};letter-spacing:0.3px;">✓ ${g.note}</div>
+      </div>`).join('');
 
-    // Top 4 active (non-dim) badges
-    const topBadges=d.allBadges.filter(b=>b.cls!=='dim').slice(0,5);
+    // Internal state badge
+    const intStateColor = d.internalState === 'PULLBACK' ? 'var(--gold)' : d.internalState === 'ALIGNED' ? 'var(--bull)' : 'var(--text-dim)';
+    const intStateBg    = d.internalState === 'PULLBACK' ? 'rgba(255,213,79,0.1)' : d.internalState === 'ALIGNED' ? 'rgba(0,230,118,0.08)' : 'transparent';
+
+    // Derivatives badge
+    const derivColor = d.derivAgreement === 'CONFIRM' ? 'var(--bull)' : d.derivAgreement === 'CONFLICT' ? 'var(--bear)' : 'var(--text-dim)';
+    const derivBg    = d.derivAgreement === 'CONFIRM' ? 'rgba(0,230,118,0.08)' : d.derivAgreement === 'CONFLICT' ? 'rgba(255,61,87,0.1)' : 'transparent';
+    const derivIcon  = d.derivAgreement === 'CONFIRM' ? '✓' : d.derivAgreement === 'CONFLICT' ? '⚠' : '◈';
 
     return `
-      <div class="smc-scan-card ${cardCls}" data-symbol="${d.symbol}">
-        <div class="ssc-top">
-          <span class="ssc-symbol">${d.symbol}</span>
-          <span class="ssc-setup-tag ${tagCls}">${tagTxt}</span>
-        </div>
-        <div class="ssc-price-row">
-          <span class="ssc-price">${fPrice(d.price)}</span>
-          <span class="ssc-change ${chgCls}">${fPct(d.changePct24h)}</span>
-        </div>
+      <div class="smc-scan-card ${d.dirCardCls}${isElite ? ' elite-setup' : ''}${isConflict ? ' conflict-card' : ''}" data-symbol="${d.symbol}">
 
-        <!-- Score section -->
-        <div class="conf-score-label">
-          <span class="conf-score-num ${tierCls}">${d.totalScore}</span>
-          <span class="conf-score-max">/10</span>
-          <span style="font-family:var(--font-mono);font-size:0.55rem;color:var(--text-dim);">${d.firingPillars}/5 PILLARS</span>
-          <span class="conf-score-tier ${tierCls}">${tierLabel}</span>
-        </div>
-        <div class="conf-score-bar-outer">
-          <div class="conf-score-bar-inner ${tierCls}" style="width:${barPct}%"></div>
-        </div>
-
-        <!-- Pillar breakdown -->
-        <div style="display:flex;gap:4px;margin-bottom:8px;">${pillarHTML}</div>
-
-        <div class="ssc-divider"></div>
-
-        <!-- Data grid -->
-        <div class="ssc-data-grid">
-          <div class="ssc-data-item">
-            <span class="ssc-data-label">EXT STRUCTURE</span>
-            <span class="ssc-data-value" style="color:${d.extBias==='BULLISH'?'var(--bull)':d.extBias==='BEARISH'?'var(--bear)':'var(--orange)'};">${d.extBias}</span>
-          </div>
-          <div class="ssc-data-item">
-            <span class="ssc-data-label">PRICE LOCATION</span>
-            <span class="ssc-data-value" style="color:${pdClr};">${d.pdZone} ${d.pdPct.toFixed(0)}%</span>
-          </div>
-          <div class="ssc-data-item">
-            <span class="ssc-data-label">VOLUME 24H</span>
-            <span class="ssc-data-value">$${fNum(d.quoteVolume)} <span style="color:var(--text-dim);font-size:0.5rem;">#${d.volRank||'—'}</span></span>
-          </div>
-          <div class="ssc-data-item">
-            <span class="ssc-data-label">FUNDING RATE</span>
-            <span class="ssc-data-value ${frCls}">${frStr}</span>
-          </div>
-          <div class="ssc-data-item">
-            <span class="ssc-data-label">ACTIVE OBs</span>
-            <span class="ssc-data-value">${d.activeOBs} OB · ${d.unfilledFVGs} FVG</span>
-          </div>
-          <div class="ssc-data-item">
-            <span class="ssc-data-label">OI VALUE</span>
-            <span class="ssc-data-value">${d.oiValue?'$'+fNum(d.oiValue):'—'}</span>
+        <!-- TOP ROW: Symbol + Direction + Grade -->
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
+          <span style="font-family:var(--font-display);font-size:1rem;font-weight:900;color:${dirColor};letter-spacing:2px;">${d.symbol}</span>
+          <div style="display:flex;align-items:center;gap:5px;">
+            <span style="font-family:var(--font-mono);font-size:0.6rem;font-weight:700;letter-spacing:1px;padding:3px 8px;border-radius:2px;color:${dirColor};background:${isLong ? 'rgba(0,230,118,0.1)' : 'rgba(255,61,87,0.1)'};border:1px solid ${dirColor};">${isLong ? '▲ LONG' : '▼ SHORT'}</span>
+            <span style="font-family:var(--font-mono);font-size:0.6rem;font-weight:700;letter-spacing:1px;padding:3px 8px;border-radius:2px;color:${gradeColor};background:${gradeBg};border:1px solid ${gradeColor};">${d.gradeLabel}</span>
           </div>
         </div>
 
-        <!-- Active confluence badges -->
-        <div class="pillar-row">
-          ${topBadges.map(b=>`<span class="pillar-badge ${b.cls}">${b.txt}</span>`).join('')}
+        <!-- PRICE ROW -->
+        <div style="display:flex;align-items:baseline;justify-content:space-between;margin-bottom:8px;">
+          <span style="font-family:var(--font-mono);font-size:0.9rem;color:var(--text-primary);">${fPrice(d.price)}</span>
+          <span style="font-family:var(--font-mono);font-size:0.72rem;" class="${chgCls}">${fPct(d.changePct24h)}</span>
         </div>
 
-        <!-- Key reason -->
-        <div class="ssc-reason">→ ${d.keyReason}</div>
+        <!-- 4 GATE STATUS -->
+        <div style="display:flex;gap:3px;padding:6px 8px;background:var(--bg-elevated);border:1px solid var(--border);border-radius:var(--radius);margin-bottom:8px;">
+          ${gateHTML}
+        </div>
+
+        <!-- INTERNAL + DERIVATIVES STATUS -->
+        <div style="display:flex;gap:5px;margin-bottom:8px;">
+          <div style="flex:1;padding:5px 8px;border-radius:var(--radius);background:${intStateBg};border:1px solid var(--border);">
+            <div style="font-family:var(--font-mono);font-size:0.45rem;color:var(--text-dim);letter-spacing:1px;margin-bottom:2px;">INTERNAL</div>
+            <div style="font-family:var(--font-mono);font-size:0.58rem;color:${intStateColor};letter-spacing:0.5px;">${d.internalState}</div>
+          </div>
+          <div style="flex:1;padding:5px 8px;border-radius:var(--radius);background:${derivBg};border:1px solid var(--border);">
+            <div style="font-family:var(--font-mono);font-size:0.45rem;color:var(--text-dim);letter-spacing:1px;margin-bottom:2px;">DERIVATIVES</div>
+            <div style="font-family:var(--font-mono);font-size:0.58rem;color:${derivColor};letter-spacing:0.5px;">${derivIcon} ${d.derivAgreement}${d.derivStrength >= 2 ? ' ★★' : d.derivStrength === 1 ? ' ★' : ''}</div>
+          </div>
+          <div style="flex:1;padding:5px 8px;border-radius:var(--radius);background:transparent;border:1px solid var(--border);">
+            <div style="font-family:var(--font-mono);font-size:0.45rem;color:var(--text-dim);letter-spacing:1px;margin-bottom:2px;">FUNDING</div>
+            <div style="font-family:var(--font-mono);font-size:0.58rem;letter-spacing:0.5px;" class="${frCls}">${frStr}</div>
+          </div>
+        </div>
+
+        <!-- KEY LEVEL -->
+        <div style="padding:6px 8px;background:var(--bg-elevated);border:1px solid ${dirColor}22;border-left:2px solid ${dirColor};border-radius:var(--radius);margin-bottom:8px;">
+          <div style="font-family:var(--font-mono);font-size:0.5rem;color:var(--text-dim);letter-spacing:1px;margin-bottom:2px;">KEY LEVEL</div>
+          <div style="font-family:var(--font-mono);font-size:0.65rem;color:${dirColor};">${d.levelDesc || '—'}</div>
+        </div>
+
+        <!-- ACTIVE BADGES -->
+        ${d.badges.length ? `<div class="pillar-row">${d.badges.map(b => `<span class="pillar-badge ${b.cls === 'conflict' ? 'fired-bear' : b.cls}">${b.txt}</span>`).join('')}</div>` : ''}
+
+        <!-- ACTION HINT -->
+        <div style="font-family:var(--font-mono);font-size:0.58rem;color:${isConflict ? 'var(--bear)' : 'var(--text-secondary)'};letter-spacing:0.3px;line-height:1.6;padding:6px 8px;background:var(--bg-elevated);border-radius:var(--radius);border:1px solid ${isConflict ? 'rgba(255,61,87,0.2)' : 'var(--border)'};margin-top:auto;">
+          → ${d.actionHint}
+        </div>
       </div>`;
   }).join('');
 
-  // Click to open full SMC coin analysis
-  container.querySelectorAll('.smc-scan-card[data-symbol]').forEach(card=>{
-    card.addEventListener('click',()=>{
-      const sym=card.dataset.symbol;
-      $('smc-coin-input').value=sym;
-      document.querySelectorAll('.nav-tab').forEach(b=>b.classList.remove('active'));
-      document.querySelectorAll('.tab-panel').forEach(p=>p.classList.remove('active'));
+  // Click → open full SMC coin analysis
+  container.querySelectorAll('.smc-scan-card[data-symbol]').forEach(card => {
+    card.addEventListener('click', () => {
+      const sym = card.dataset.symbol;
+      $('smc-coin-input').value = sym;
+      document.querySelectorAll('.nav-tab').forEach(b => b.classList.remove('active'));
+      document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
       document.querySelector('[data-tab="smc-coin"]').classList.add('active');
       $('tab-smc-coin').classList.add('active');
       runSmcCoinScan();
     });
   });
 }
+
+
 
 /* ══════════════════════════════════════════════════════════════
    CANDLESTICK CHART ENGINE
