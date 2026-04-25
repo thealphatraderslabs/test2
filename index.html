@@ -1663,16 +1663,30 @@ async function fetchBybitOrderbook(symbol) {
 }
 
 async function fetchAllBinance() {
-  const res=await fetchWithTimeout(`${CFG.BINANCE_FAPI}/ticker/24hr`);
-  const data=await res.json();
+  // Fetch 24hr tickers AND premiumIndex (funding rates) in parallel
+  const [tickerRes, premRes] = await Promise.allSettled([
+    fetchWithTimeout(`${CFG.BINANCE_FAPI}/ticker/24hr`).then(r=>r.json()),
+    fetchWithTimeout(`${CFG.BINANCE_FAPI}/premiumIndex`).then(r=>r.json()),
+  ]);
+  const data = tickerRes.status==='fulfilled' ? tickerRes.value : null;
   if(!Array.isArray(data)) throw new Error('Binance all tickers failed');
+
+  // Build funding rate map from premiumIndex batch (symbol -> fundingRate)
+  const fundingMap = {};
+  if(premRes.status==='fulfilled' && Array.isArray(premRes.value)) {
+    premRes.value.forEach(p => {
+      if(p.symbol) fundingMap[p.symbol] = parseFloat(p.lastFundingRate) || null;
+    });
+  }
+
   return data.filter(t=>t.symbol.endsWith('USDT')).map(t=>({
     symbol:t.symbol.replace('USDT',''),lastPrice:parseFloat(t.lastPrice),
     changePct24h:parseFloat(t.priceChangePercent),
     high24h:parseFloat(t.highPrice),low24h:parseFloat(t.lowPrice),
     volume:parseFloat(t.volume),quoteVolume:parseFloat(t.quoteVolume),
     tradeCount:t.count,weightedAvg:parseFloat(t.weightedAvgPrice),
-    fundingRate:null,openInterest:null,oiValue:null,source:'BINANCE',
+    fundingRate: fundingMap[t.symbol] ?? null,
+    openInterest:null,oiValue:null,source:'BINANCE',
   }));
 }
 
@@ -3712,38 +3726,45 @@ async function runSmcMarketScan() {
       catch(e2){ throw new Error('Could not fetch market data: '+e2.message); }
     }
 
-    // Sort by volume, filter illiquid
+    // Sort by volume descending, keep all liquid coins (>$50k 24h vol), cap at top 300
     allCoins.sort((a,b)=>b.quoteVolume-a.quoteVolume);
-    const liquidCoins=allCoins.filter(c=>c.quoteVolume>50000);
+    const liquidCoins=allCoins.filter(c=>c.quoteVolume>50000).slice(0,300);
 
-    // ── PHASE 2: Pre-filter by derivatives signals ──
-    // Score each coin on derivatives alone (free, no kline fetch needed)
-    // Only proceed to kline fetch for coins that have at least some signal
-    $('smc-market-loader-text').textContent=`PHASE 2 — DERIVATIVES PRE-FILTER (${liquidCoins.length} coins)...`;
-    const derivPreScored=liquidCoins.map(coin=>{
+    // ── PHASE 2: Score derivatives + volume for all liquid coins (no pre-filter gate) ──
+    // Previously a _preScore>=1 gate was here — removed because on Binance fundingRate
+    // was null for all coins causing random, inconsistent coin counts per scan.
+    // All liquid coins now proceed to kline analysis. Derivatives are scored correctly
+    // now that fetchAllBinance enriches funding rates from the premiumIndex batch endpoint.
+    $('smc-market-loader-text').textContent=`PHASE 2 — SCORING ${liquidCoins.length} COINS (DERIVATIVES + VOLUME)...`;
+    const klineCandidates=liquidCoins.map(coin=>{
       const deriv=scoreDerivatives(coin);
       const vol=scoreVolume(coin,liquidCoins);
-      const preScore=deriv.score+vol.score;
-      return {...coin, _derivScore:deriv.score, _derivBadges:deriv.badges, _volScore:vol.score, _volBadges:vol.badges, _volRank:vol.rank, _preScore:preScore};
+      return {...coin, _derivScore:deriv.score, _derivBadges:deriv.badges, _volScore:vol.score, _volBadges:vol.badges, _volRank:vol.rank};
     });
 
-    // Keep only coins with pre-score >= 1 (at least one signal) for kline analysis
-    // This reduces kline fetches dramatically without losing quality coins
-    const klineCandidates=derivPreScored.filter(c=>c._preScore>=1);
     $('smc-market-loading').style.display='none';
     $('smc-market-progress').style.display='block';
 
-    // ── PHASE 3: Kline fetch + full SMC engine on candidates ──
+    // ── PHASE 3: Kline fetch in parallel batches + full SMC engine ──
+    // Fetch klines in batches of 10 simultaneously (rate-limit safe, much faster than serial)
+    const BATCH_SIZE = 10;
     const results=[];
-    for(let i=0;i<klineCandidates.length;i++){
-      const coin=klineCandidates[i];
-      const symbol=coin.symbol+'USDT';
-      const pct=((i+1)/klineCandidates.length*100).toFixed(0);
+    for(let i=0;i<klineCandidates.length;i+=BATCH_SIZE){
+      const batch=klineCandidates.slice(i,i+BATCH_SIZE);
+      const pct=Math.min(100,(i/klineCandidates.length*100)).toFixed(0);
       $('smc-progress-bar').style.width=pct+'%';
-      $('smc-progress-text').textContent=`Phase 3 — SMC Analysis: ${i+1} / ${klineCandidates.length} — ${coin.symbol}  (${pct}%)`;
+      $('smc-progress-text').textContent=`Phase 3 — SMC Analysis: ${Math.min(i+BATCH_SIZE,klineCandidates.length)} / ${klineCandidates.length} (${pct}%)`;
 
+      // Fetch all klines in this batch in parallel
+      const batchCandles=await Promise.allSettled(
+        batch.map(coin=>fetchKline(coin.symbol+'USDT',tf,60))
+      );
+
+      for(let j=0;j<batch.length;j++){
+        const coin=batch[j];
+        const symbol=coin.symbol+'USDT';
       try {
-        const candles=await fetchKline(symbol,tf,60);
+        const candles=batchCandles[j].status==='fulfilled'?batchCandles[j].value:null;
         if(!candles||candles.length<15){continue;}
         const cp=candles[candles.length-1].c;
 
@@ -3824,9 +3845,11 @@ async function runSmcMarketScan() {
           unfilledFVGs:fvgs.filter(f=>f.fillStatus!=='FILLED').length,
         });
       } catch(_){ /* skip */ }
+      } // end inner coin loop
 
-      await new Promise(r=>setTimeout(r,80));
-    }
+      // Small inter-batch delay to avoid rate limiting
+      await new Promise(r=>setTimeout(r,120));
+    } // end outer batch loop
 
     STATE.smcMarketData=results;
     $('smc-market-progress').style.display='none';
@@ -3835,7 +3858,7 @@ async function runSmcMarketScan() {
     const longCount=results.filter(r=>r.direction==='LONG').length;
     const shortCount=results.filter(r=>r.direction==='SHORT').length;
     const avgScore=results.length?+(results.reduce((s,r)=>s+r.totalScore,0)/results.length).toFixed(1):0;
-    $('smc-scan-count').textContent=liquidCoins.length+' COINS';
+    $('smc-scan-count').textContent=klineCandidates.length+' COINS SCANNED';
     $('smc-setups-count').textContent=results.length+' QUALIFIED';
     $('smc-long-count').textContent=longCount+' LONG';
     $('smc-short-count').textContent=shortCount+' SHORT';
@@ -3846,7 +3869,7 @@ async function runSmcMarketScan() {
 
     renderSmcMarketCards();
     setStatus('ok','SMC SCAN DONE');
-    onScanComplete('SMC MARKET SCAN DONE',`${liquidCoins.length} coins · ${results.length} qualified · ${longCount} long, ${shortCount} short setups found.`);
+    onScanComplete('SMC MARKET SCAN DONE',`${klineCandidates.length} coins scanned · ${results.length} qualified · ${longCount} long, ${shortCount} short setups found.`);
   } catch(e){
     $('smc-market-progress').style.display='none';
     $('smc-market-loading').style.display='none';
