@@ -3728,7 +3728,7 @@ async function runSmcMarketScan() {
 
     // Sort by volume descending, keep all liquid coins (>$50k 24h vol), cap at top 300
     allCoins.sort((a,b)=>b.quoteVolume-a.quoteVolume);
-    const liquidCoins=allCoins.filter(c=>c.quoteVolume>50000).slice(0,300);
+    const liquidCoins=allCoins.filter(c=>c.quoteVolume>50000);
 
     // ── PHASE 2: Score derivatives + volume for all liquid coins (no pre-filter gate) ──
     // Previously a _preScore>=1 gate was here — removed because on Binance fundingRate
