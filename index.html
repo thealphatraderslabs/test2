@@ -698,6 +698,96 @@ body {
   .tsc-header { flex-direction:column; align-items:flex-start; }
 }
 
+/* ══════════════════════════════════════════════════════════════
+   CANDLESTICK CHART STYLES
+══════════════════════════════════════════════════════════════ */
+.chart-card {
+  background:var(--bg-card); border:1px solid var(--border);
+  border-radius:var(--radius-lg); padding:14px;
+  box-shadow:var(--shadow-card);
+}
+.chart-header {
+  display:flex; align-items:center; justify-content:space-between;
+  margin-bottom:12px; flex-wrap:wrap; gap:8px;
+}
+.chart-title {
+  font-family:var(--font-body); font-size:0.65rem; font-weight:700;
+  letter-spacing:2px; color:var(--text-dim); display:flex; align-items:center; gap:6px;
+}
+.chart-title .chart-label-icon { color:var(--accent); }
+.chart-title.smc-chart .chart-label-icon { color:var(--orange); }
+.chart-legend {
+  display:flex; flex-wrap:wrap; gap:8px; align-items:center;
+}
+.chart-legend-item {
+  display:flex; align-items:center; gap:4px;
+  font-family:var(--font-mono); font-size:0.55rem;
+  color:var(--text-dim); letter-spacing:0.5px;
+}
+.chart-legend-dot {
+  width:10px; height:3px; border-radius:1px; flex-shrink:0;
+}
+.chart-actions {
+  display:flex; gap:6px;
+}
+.chart-btn {
+  display:flex; align-items:center; gap:5px;
+  background:var(--bg-elevated); border:1px solid var(--border);
+  color:var(--text-secondary); font-family:var(--font-body);
+  font-size:0.62rem; font-weight:600; letter-spacing:1.5px;
+  padding:5px 10px; border-radius:var(--radius); cursor:pointer;
+  transition:all 0.15s ease; white-space:nowrap;
+}
+.chart-btn:hover { border-color:var(--accent); color:var(--accent); }
+.chart-btn.smc-chart-btn:hover { border-color:var(--orange); color:var(--orange); }
+.chart-btn.download-btn:hover { border-color:var(--bull); color:var(--bull); }
+.chart-canvas-wrapper {
+  position:relative; width:100%; overflow:hidden;
+  border-radius:var(--radius); background:var(--bg-base);
+  border:1px solid var(--border);
+}
+.chart-canvas {
+  display:block; width:100%; height:380px;
+}
+
+/* Fullscreen modal */
+.chart-modal-overlay {
+  position:fixed; inset:0; z-index:10000;
+  background:rgba(7,10,15,0.96); backdrop-filter:blur(8px);
+  display:flex; flex-direction:column; align-items:stretch;
+  animation:fadeIn 0.15s ease;
+}
+.chart-modal-header {
+  display:flex; align-items:center; justify-content:space-between;
+  padding:12px 20px; border-bottom:1px solid var(--border);
+  background:var(--bg-card); flex-shrink:0;
+}
+.chart-modal-title {
+  font-family:var(--font-display); font-size:0.85rem; font-weight:700;
+  letter-spacing:3px; color:var(--accent);
+}
+.chart-modal-actions { display:flex; gap:8px; }
+.chart-modal-close {
+  background:none; border:1px solid var(--border); color:var(--text-secondary);
+  font-family:var(--font-mono); font-size:0.7rem; letter-spacing:1px;
+  padding:6px 14px; border-radius:var(--radius); cursor:pointer;
+  transition:all 0.15s ease;
+}
+.chart-modal-close:hover { border-color:var(--bear); color:var(--bear); }
+.chart-modal-body {
+  flex:1; padding:16px; overflow:hidden; display:flex;
+  flex-direction:column; gap:8px;
+}
+.chart-modal-canvas {
+  flex:1; display:block; width:100%; border-radius:var(--radius);
+  background:var(--bg-base); border:1px solid var(--border);
+  min-height:0;
+}
+.chart-modal-legend {
+  display:flex; flex-wrap:wrap; gap:10px; padding:8px 0 0;
+  flex-shrink:0;
+}
+
 /* ── SMC MARKET SCAN ENHANCED CARD STYLES ── */
 
 .conf-score-bar-outer { height:5px; background:var(--border); border-radius:3px; margin:8px 0 6px; overflow:hidden; }
@@ -930,6 +1020,22 @@ body {
           </div>
         </div>
       </div>
+      <!-- ROW 1.5: CHART -->
+      <div class="grid-row" style="grid-template-columns:1fr;display:none;" id="single-chart-row">
+        <div class="chart-card">
+          <div class="chart-header">
+            <div class="chart-title"><span class="chart-label-icon">▸</span>PRICE CHART<span id="single-chart-label" style="margin-left:8px;font-family:var(--font-mono);font-size:0.6rem;color:var(--accent);"></span></div>
+            <div class="chart-legend" id="single-chart-legend"></div>
+            <div class="chart-actions">
+              <button class="chart-btn" onclick="openChartModal('single')">⛶ FULLSCREEN</button>
+              <button class="chart-btn download-btn" onclick="downloadChart('single-chart-canvas','chart')">↓ DOWNLOAD</button>
+            </div>
+          </div>
+          <div class="chart-canvas-wrapper">
+            <canvas class="chart-canvas" id="single-chart-canvas"></canvas>
+          </div>
+        </div>
+      </div>
       <!-- ROW 2: S/R + Supply/Demand + Liquidity -->
       <div class="grid-row row-levels">
         <div class="card">
@@ -1093,6 +1199,22 @@ body {
     </div>
     <!-- SMC Results Grid -->
     <div id="smc-results" style="display:none;">
+      <!-- ROW 0: SMC CHART -->
+      <div class="grid-row row-smc-full" style="margin-bottom:16px;">
+        <div class="chart-card">
+          <div class="chart-header">
+            <div class="chart-title smc-chart"><span class="chart-label-icon orange">▸</span>SMC ANALYSIS CHART<span id="smc-chart-label" style="margin-left:8px;font-family:var(--font-mono);font-size:0.6rem;color:var(--orange);"></span></div>
+            <div class="chart-legend" id="smc-chart-legend"></div>
+            <div class="chart-actions">
+              <button class="chart-btn smc-chart-btn" onclick="openChartModal('smc')">⛶ FULLSCREEN</button>
+              <button class="chart-btn download-btn" onclick="downloadChart('smc-chart-canvas','smc-chart')">↓ DOWNLOAD</button>
+            </div>
+          </div>
+          <div class="chart-canvas-wrapper">
+            <canvas class="chart-canvas" id="smc-chart-canvas"></canvas>
+          </div>
+        </div>
+      </div>
       <!-- ROW 1: External + Internal Structure -->
       <div class="grid-row row-smc" style="margin-bottom:16px;">
         <div class="card smc-card" id="smc-ext-struct-card">
@@ -1200,6 +1322,21 @@ body {
   </section>
 
 </main>
+
+<!-- ═══ FULLSCREEN CHART MODAL ═══ -->
+<div class="chart-modal-overlay" id="chart-modal" style="display:none;">
+  <div class="chart-modal-header">
+    <div class="chart-modal-title" id="chart-modal-title">CRYPTEX — CHART</div>
+    <div class="chart-modal-actions">
+      <button class="chart-btn download-btn chart-modal-close" id="chart-modal-download" onclick="downloadChart('chart-modal-canvas','cryptex-chart')">↓ DOWNLOAD PNG</button>
+      <button class="chart-modal-close" onclick="closeChartModal()">✕ CLOSE</button>
+    </div>
+  </div>
+  <div class="chart-modal-body">
+    <canvas class="chart-modal-canvas" id="chart-modal-canvas"></canvas>
+    <div class="chart-modal-legend" id="chart-modal-legend"></div>
+  </div>
+</div>
 
 <footer class="footer">
   <span>CRYPTEX v2.0 — DATA: BINANCE FAPI / BYBIT V5 / COINGECKO · SMC ENGINE: ORDER BLOCKS · FVG · STRUCTURE · LIQUIDITY</span>
@@ -1775,11 +1912,10 @@ function detectOrderBlocks(candles, currentPrice) {
     if(c.c<c.o && next.c>next.o && nextBody>=cBody*1.5){
       const high=c.h,low=c.l;
       const distPct=((currentPrice-((high+low)/2))/currentPrice)*100;
-      // Check if mitigated (price came back into zone)
       const futureCandles=candles.slice(i+2);
       const mitigated=futureCandles.some(fc=>fc.l<=high&&fc.h>=low);
-      const inside=currentPrice>=low&&currentPrice<=high;
-      obs.push({type:'BULL_OB',high,low,idx:i,mitigated,inside,distPct,candle:c});
+      // inside computed later after deduplication
+      obs.push({type:'BULL_OB',high,low,idx:i,mitigated,inside:false,distPct,candle:c});
     }
     // Bearish OB: bullish candle (c.c > c.o) followed by strong bearish impulse
     if(c.c>c.o && next.c<next.o && nextBody>=cBody*1.5){
@@ -1787,15 +1923,32 @@ function detectOrderBlocks(candles, currentPrice) {
       const distPct=((currentPrice-((high+low)/2))/currentPrice)*100;
       const futureCandles=candles.slice(i+2);
       const mitigated=futureCandles.some(fc=>fc.l<=high&&fc.h>=low);
-      const inside=currentPrice>=low&&currentPrice<=high;
-      obs.push({type:'BEAR_OB',high,low,idx:i,mitigated,inside,distPct,candle:c});
+      obs.push({type:'BEAR_OB',high,low,idx:i,mitigated,inside:false,distPct,candle:c});
     }
   }
 
-  // Return last 3 of each type, sorted by recency
+  // Return last 3 of each type sorted by recency (most recent = highest idx)
   const bullOBs=obs.filter(o=>o.type==='BULL_OB').slice(-3);
   const bearOBs=obs.filter(o=>o.type==='BEAR_OB').slice(-3);
-  return [...bearOBs,...bullOBs].sort((a,b)=>b.idx-a.idx).slice(0,6);
+  const finalOBs=[...bearOBs,...bullOBs].sort((a,b)=>b.idx-a.idx).slice(0,6);
+
+  // ── PRICE INSIDE FIX ──
+  // Price is a single point. It can only be inside ONE OB per type.
+  // Rule: among all OBs of the same type that contain currentPrice,
+  //       only the MOST RECENT (highest idx) one gets inside=true.
+  //       All others remain inside=false even if price is within their range.
+  const insideBull=finalOBs
+    .filter(o=>o.type==='BULL_OB'&&!o.mitigated&&currentPrice>=o.low&&currentPrice<=o.high)
+    .sort((a,b)=>b.idx-a.idx);
+  const insideBear=finalOBs
+    .filter(o=>o.type==='BEAR_OB'&&!o.mitigated&&currentPrice>=o.low&&currentPrice<=o.high)
+    .sort((a,b)=>b.idx-a.idx);
+
+  // Mark only the most recent of each type as inside=true
+  if(insideBull.length>0) insideBull[0].inside=true;
+  if(insideBear.length>0) insideBear[0].inside=true;
+
+  return finalOBs;
 }
 
 /**
@@ -1930,7 +2083,7 @@ function validateLevels(candles, currentPrice, obs, fvgs, eqhEql, pivots) {
     const midpoint=(ob.high+ob.low)/2;
     const diff=((currentPrice-midpoint)/currentPrice*100).toFixed(2);
     let status='WAITING';
-    if(ob.inside) status='TESTED';
+    if(ob.inside) status='INSIDE';
     else if(ob.mitigated) status='SWEPT';
     else if(Math.abs(currentPrice-midpoint)/currentPrice<0.005) status='TESTING';
     validations.push({
@@ -2886,7 +3039,7 @@ function renderLevelValidation(validations) {
   const container=$('smc-validation-content');
   if(!validations.length){container.innerHTML='<div class="levels-placeholder">No levels to validate</div>';return;}
 
-  const statusMap={'WAITING':'waiting','TESTED':'tested','SWEPT':'swept','FLIPPED':'flipped','BROKEN':'broken','HOLDING':'holding','PARTIAL':'tested','TESTING':'tested'};
+  const statusMap={'WAITING':'waiting','INSIDE':'tested','TESTED':'tested','SWEPT':'swept','FLIPPED':'flipped','BROKEN':'broken','HOLDING':'holding','PARTIAL':'tested','TESTING':'tested'};
 
   container.innerHTML=`
     <div style="font-family:var(--font-mono);font-size:0.6rem;color:var(--text-dim);letter-spacing:1px;margin-bottom:8px;">
@@ -3141,6 +3294,13 @@ async function fetchCoin() {
   renderSR(pivots,tf); renderSupplyDemand(sdZones,tf); renderLiquidity(liqZones);
   renderOrderBook(market); renderMarketStats(gecko); renderSocials(gecko);
   renderDescription(gecko); renderSourceBar(market.source,tf);
+
+  // ── Render chart with S/R levels ──
+  if(candles&&candles.length){
+    const singleLevels=buildChartLevels({pivots,sdZones,currentPrice:cp});
+    renderChart('single',candles,singleLevels,ticker,tf);
+  }
+
   $('fetch-btn').classList.remove('loading'); setStatus('ok','LIVE');
   onScanComplete('COIN FETCHED', `${ticker} data loaded — ${tf.toUpperCase()} analysis ready.`);
 }
@@ -3249,6 +3409,10 @@ async function runSmcCoinScan() {
   renderPremiumDiscount(pd);
   renderLevelValidation(validations);
   renderConfluence(confluence);
+
+  // ── Render SMC chart with all levels ──
+  const smcLevels=buildChartLevels({obs,fvgs,eqhEql,extStruct,pd,confluence,currentPrice});
+  renderChart('smc',candles,smcLevels,ticker,tf);
 
   $('smc-fetch-btn').classList.remove('loading');
   setStatus('ok','SMC COMPLETE');
@@ -3832,6 +3996,475 @@ function renderSmcMarketCards() {
 }
 
 /* ══════════════════════════════════════════════════════════════
+   CANDLESTICK CHART ENGINE
+   Pure Canvas 2D — no external libraries, works offline
+   Draws: candles, OBs, FVGs, EQH/EQL, BOS/MSS, P/D fibs,
+          S/R levels, current price, entry/SL/TP from trade plan
+══════════════════════════════════════════════════════════════ */
+
+// Chart state — stores last drawn data for modal redraw
+const CHART_STATE = {
+  single: { candles:null, levels:null, label:'', tf:'' },
+  smc:    { candles:null, levels:null, label:'', tf:'' },
+  activeMode: null,   // 'single' or 'smc'
+};
+
+// Colour palette (CSS variable values resolved for canvas)
+const C = {
+  bg:         '#070a0f',
+  bgCard:     '#0b0f18',
+  bgElevated: '#111826',
+  border:     '#1a2236',
+  borderBrt:  '#243050',
+  accent:     '#00d4ff',
+  bull:       '#00e676',
+  bear:       '#ff3d57',
+  orange:     '#ff9800',
+  gold:       '#ffd54f',
+  text:       '#d0dff0',
+  textDim:    '#3a4f6a',
+  textSub:    '#6a85a8',
+  gridLine:   'rgba(26,34,54,0.8)',
+};
+
+/**
+ * buildChartLevels — assembles all drawable levels from SMC data
+ * Returns array of {price, label, color, style, width, alpha, fillTop, fillBot, fillColor}
+ */
+function buildChartLevels(data) {
+  const levels = [];
+  if(!data) return levels;
+
+  const { obs, fvgs, eqhEql, extStruct, pd, pivots, sdZones, confluence, currentPrice } = data;
+
+  // ── Order Blocks (filled rectangles) ──
+  if(obs) obs.forEach(ob => {
+    const isBull = ob.type === 'BULL_OB';
+    levels.push({
+      type: 'zone',
+      fillTop: ob.high,
+      fillBot: ob.low,
+      fillColor: isBull ? 'rgba(0,230,118,0.08)' : 'rgba(255,61,87,0.08)',
+      borderColor: isBull ? 'rgba(0,230,118,0.5)' : 'rgba(255,61,87,0.5)',
+      label: ob.inside ? (isBull?'⦿ BULL OB (INSIDE)':'⦿ BEAR OB (INSIDE)') : (ob.mitigated?(isBull?'BULL OB (MIT)':'BEAR OB (MIT)'):(isBull?'BULL OB':'BEAR OB')),
+      labelColor: isBull ? C.bull : C.bear,
+      price: (ob.high + ob.low) / 2,
+      alpha: ob.mitigated ? 0.3 : 1,
+      ztype: 'ob',
+    });
+  });
+
+  // ── FVGs (filled rectangles, slightly striped) ──
+  if(fvgs) fvgs.filter(f => f.fillStatus !== 'FILLED').forEach(f => {
+    const isBull = f.type === 'BULL_FVG';
+    levels.push({
+      type: 'zone',
+      fillTop: f.top,
+      fillBot: f.bot,
+      fillColor: isBull ? 'rgba(0,230,118,0.05)' : 'rgba(255,61,87,0.05)',
+      borderColor: isBull ? 'rgba(0,230,118,0.35)' : 'rgba(255,61,87,0.35)',
+      label: f.fillStatus === 'PARTIAL' ? (isBull?'FVG BULL (PARTIAL)':'FVG BEAR (PARTIAL)') : (isBull?'FVG BULL':'FVG BEAR'),
+      labelColor: isBull ? C.bull : C.bear,
+      price: (f.top + f.bot) / 2,
+      dashed: true,
+      ztype: 'fvg',
+    });
+  });
+
+  // ── Structure swing levels ──
+  if(extStruct) {
+    if(extStruct.lastHH) levels.push({type:'line',price:extStruct.lastHH.price,label:'HH',color:C.bull,style:'dashed',width:1,alpha:0.7});
+    if(extStruct.lastHL) levels.push({type:'line',price:extStruct.lastHL.price,label:'HL',color:C.bull,style:'dashed',width:1,alpha:0.6});
+    if(extStruct.lastLH) levels.push({type:'line',price:extStruct.lastLH.price,label:'LH',color:C.bear,style:'dashed',width:1,alpha:0.7});
+    if(extStruct.lastLL) levels.push({type:'line',price:extStruct.lastLL.price,label:'LL',color:C.bear,style:'dashed',width:1,alpha:0.6});
+    // BOS/MSS events
+    extStruct.events && extStruct.events.slice(-3).forEach(ev => {
+      const isBull = ev.dir === 'BULLISH';
+      levels.push({type:'line',price:ev.price,label:ev.type+' '+ev.dir,color:ev.type==='MSS'?C.orange:C.accent,style:'dotted',width:1.5,alpha:0.8});
+    });
+  }
+
+  // ── EQH/EQL (dashed horizontal lines) ──
+  if(eqhEql) {
+    eqhEql.eqHighs && eqhEql.eqHighs.filter(e=>!e.swept).forEach(e => {
+      levels.push({type:'line',price:e.level,label:`EQH ×${e.touches}`,color:C.bear,style:'dashed',width:1,alpha:0.6});
+    });
+    eqhEql.eqLows && eqhEql.eqLows.filter(e=>!e.swept).forEach(e => {
+      levels.push({type:'line',price:e.level,label:`EQL ×${e.touches}`,color:C.bull,style:'dashed',width:1,alpha:0.6});
+    });
+  }
+
+  // ── Premium/Discount Fibs ──
+  if(pd) {
+    pd.fibLevels && pd.fibLevels.forEach(f => {
+      const is618 = Math.abs(f.fib-0.618)<0.01, is382 = Math.abs(f.fib-0.382)<0.01, is5 = Math.abs(f.fib-0.5)<0.01;
+      levels.push({type:'line',price:f.price,label:'FIB '+f.label,color:is618||is382?C.gold:C.textDim,style:'dotted',width:is618||is382?1.5:0.8,alpha:is618||is382?0.8:0.4});
+    });
+    // Range boundaries
+    levels.push({type:'line',price:pd.swingHigh,label:'RANGE HIGH',color:C.bear,style:'solid',width:1,alpha:0.5});
+    levels.push({type:'line',price:pd.swingLow, label:'RANGE LOW', color:C.bull,style:'solid',width:1,alpha:0.5});
+  }
+
+  // ── Support/Resistance (single coin only) ──
+  if(pivots) {
+    const colMap = {resistance:C.bear, support:C.bull, pivot:C.accent};
+    pivots.forEach(p => {
+      levels.push({type:'line',price:p.price,label:p.tag+' '+fPrice(p.price),color:colMap[p.type]||C.textDim,style:'solid',width:0.8,alpha:0.45});
+    });
+  }
+
+  // ── Trade plan levels (entry/SL/TPs) ──
+  if(confluence && confluence.tradePlan) {
+    const tp = confluence.tradePlan;
+    const isLong = tp.direction === 'LONG';
+    if(tp.entryZone) {
+      levels.push({type:'zone',fillTop:tp.entryZone.high,fillBot:tp.entryZone.low,fillColor:'rgba(0,212,255,0.08)',borderColor:C.accent,label:'ENTRY ZONE',labelColor:C.accent,price:tp.entryZone.mid,ztype:'trade'});
+    }
+    if(tp.slPrice) levels.push({type:'line',price:tp.slPrice,label:'SL',color:C.bear,style:'solid',width:2,alpha:1,trade:true});
+    if(tp.tp1)    levels.push({type:'line',price:tp.tp1,label:'TP1',color:C.bull,style:'solid',width:1.5,alpha:0.9,trade:true});
+    if(tp.tp2)    levels.push({type:'line',price:tp.tp2,label:'TP2',color:C.bull,style:'solid',width:1.5,alpha:0.75,trade:true});
+    if(tp.tp3)    levels.push({type:'line',price:tp.tp3,label:'TP3',color:C.bull,style:'solid',width:1.5,alpha:0.6,trade:true});
+  }
+
+  // ── Current price (always last so it renders on top) ──
+  if(currentPrice) {
+    levels.push({type:'line',price:currentPrice,label:'PRICE',color:C.accent,style:'solid',width:1.5,alpha:1,isPrice:true});
+  }
+
+  return levels;
+}
+
+/**
+ * drawChart — main render function
+ * canvas: HTMLCanvasElement
+ * candles: [{t,o,h,l,c,v}]
+ * levels: from buildChartLevels()
+ */
+function drawChart(canvas, candles, levels, opts={}) {
+  if(!canvas||!candles||candles.length<2) return;
+
+  const dpr = window.devicePixelRatio || 1;
+  const W = canvas.offsetWidth;
+  const H = canvas.offsetHeight || 380;
+  canvas.width  = W * dpr;
+  canvas.height = H * dpr;
+  const ctx = canvas.getContext('2d');
+  ctx.scale(dpr, dpr);
+
+  // Layout
+  const PAD_L = 70, PAD_R = 80, PAD_T = 20, PAD_B = 36;
+  const chartW = W - PAD_L - PAD_R;
+  const chartH = H - PAD_T - PAD_B;
+
+  // Price range — include all level prices so nothing is clipped
+  const allPrices = candles.flatMap(c=>[c.h,c.l]);
+  levels.forEach(l => {
+    if(l.type==='line'&&l.price) allPrices.push(l.price);
+    if(l.type==='zone') { allPrices.push(l.fillTop); allPrices.push(l.fillBot); }
+  });
+  let pMin = Math.min(...allPrices), pMax = Math.max(...allPrices);
+  const pad = (pMax - pMin) * 0.08;
+  pMin -= pad; pMax += pad;
+  const pRange = pMax - pMin;
+
+  const px = (p) => PAD_L + (allPrices.indexOf(p), ((p-pMin)/pRange) * chartH);
+  // y coordinate — inverted (high price = top)
+  const py = p => PAD_T + chartH - ((p - pMin) / pRange) * chartH;
+
+  // Candle width
+  const candleCount = candles.length;
+  const slotW = chartW / candleCount;
+  const candleW = Math.max(1, slotW * 0.7);
+  const cx = i => PAD_L + (i + 0.5) * slotW;
+
+  // ── BACKGROUND ──
+  ctx.fillStyle = C.bg;
+  ctx.fillRect(0, 0, W, H);
+
+  // ── GRID LINES (horizontal) ──
+  const gridCount = 6;
+  ctx.strokeStyle = C.gridLine;
+  ctx.lineWidth = 0.5;
+  for(let i=0;i<=gridCount;i++){
+    const y = PAD_T + (chartH / gridCount) * i;
+    ctx.beginPath(); ctx.moveTo(PAD_L, y); ctx.lineTo(W-PAD_R, y); ctx.stroke();
+    // Price label
+    const price = pMax - (pRange / gridCount) * i;
+    ctx.fillStyle = C.textDim;
+    ctx.font = `${Math.round(9*dpr)/dpr}px 'Share Tech Mono', monospace`;
+    ctx.textAlign = 'right';
+    ctx.fillText(fPrice(price).replace('$',''), PAD_L - 4, y + 3);
+  }
+
+  // ── VERTICAL GRID (every ~8 candles) ──
+  const vStep = Math.max(1, Math.floor(candleCount / 8));
+  ctx.strokeStyle = C.gridLine;
+  for(let i=0;i<candleCount;i+=vStep){
+    const x = cx(i);
+    ctx.beginPath(); ctx.moveTo(x, PAD_T); ctx.lineTo(x, PAD_T+chartH); ctx.stroke();
+    // Time label
+    if(candles[i]&&candles[i].t){
+      const d = new Date(candles[i].t);
+      const lbl = `${d.getMonth()+1}/${d.getDate()} ${d.getHours().toString().padStart(2,'0')}:${d.getMinutes().toString().padStart(2,'0')}`;
+      ctx.fillStyle = C.textDim;
+      ctx.font = `${Math.round(8*dpr)/dpr}px 'Share Tech Mono', monospace`;
+      ctx.textAlign = 'center';
+      ctx.fillText(lbl, x, H - 8);
+    }
+  }
+
+  // ── ZONE LEVELS (OBs, FVGs, trade zones — rendered before candles) ──
+  levels.filter(l=>l.type==='zone').forEach(lv => {
+    const yTop = py(lv.fillTop);
+    const yBot = py(lv.fillBot);
+    const zH = Math.abs(yBot - yTop);
+    const zY = Math.min(yTop, yBot);
+
+    // Fill
+    ctx.globalAlpha = lv.alpha != null ? lv.alpha : 0.6;
+    ctx.fillStyle = lv.fillColor;
+    if(lv.dashed) {
+      // Striped fill for FVGs
+      ctx.save();
+      ctx.beginPath(); ctx.rect(PAD_L, zY, chartW, Math.max(1,zH)); ctx.clip();
+      for(let sx=PAD_L;sx<PAD_L+chartW;sx+=6){
+        ctx.beginPath(); ctx.moveTo(sx, zY); ctx.lineTo(sx+3, zY+zH); ctx.strokeStyle=lv.fillColor; ctx.lineWidth=2; ctx.stroke();
+      }
+      ctx.restore();
+    } else {
+      ctx.fillRect(PAD_L, zY, chartW, Math.max(1,zH));
+    }
+
+    // Border lines (top + bottom)
+    ctx.globalAlpha = 0.7;
+    ctx.strokeStyle = lv.borderColor;
+    ctx.lineWidth = 1;
+    ctx.setLineDash([4,3]);
+    ctx.beginPath(); ctx.moveTo(PAD_L, py(lv.fillTop)); ctx.lineTo(W-PAD_R, py(lv.fillTop)); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(PAD_L, py(lv.fillBot)); ctx.lineTo(W-PAD_R, py(lv.fillBot)); ctx.stroke();
+    ctx.setLineDash([]);
+
+    // Zone label
+    ctx.globalAlpha = 1;
+    ctx.fillStyle = lv.labelColor;
+    ctx.font = `bold ${Math.round(9*dpr)/dpr}px 'Share Tech Mono', monospace`;
+    ctx.textAlign = 'right';
+    const midY = (py(lv.fillTop)+py(lv.fillBot))/2;
+    ctx.fillText(lv.label, W - PAD_R - 4, midY + 3);
+  });
+  ctx.globalAlpha = 1;
+
+  // ── CANDLES ──
+  candles.forEach((c, i) => {
+    const isBull = c.c >= c.o;
+    const bodyTop    = py(Math.max(c.o, c.c));
+    const bodyBot    = py(Math.min(c.o, c.c));
+    const bodyH      = Math.max(1, bodyBot - bodyTop);
+    const wickTop    = py(c.h);
+    const wickBot    = py(c.l);
+    const x          = cx(i);
+    const halfW      = candleW / 2;
+
+    const bodyColor  = isBull ? C.bull : C.bear;
+    const wickColor  = isBull ? 'rgba(0,230,118,0.7)' : 'rgba(255,61,87,0.7)';
+
+    // Wick
+    ctx.strokeStyle = wickColor;
+    ctx.lineWidth = Math.max(0.5, candleW * 0.15);
+    ctx.beginPath();
+    ctx.moveTo(x, wickTop); ctx.lineTo(x, wickBot);
+    ctx.stroke();
+
+    // Body
+    if(candleW >= 2) {
+      ctx.fillStyle = bodyColor;
+      ctx.globalAlpha = isBull ? 0.85 : 0.75;
+      ctx.fillRect(x - halfW, bodyTop, candleW, bodyH);
+      // Body border
+      ctx.strokeStyle = bodyColor;
+      ctx.lineWidth = 0.5;
+      ctx.globalAlpha = 1;
+      ctx.strokeRect(x - halfW, bodyTop, candleW, bodyH);
+    } else {
+      // Too small — just draw a line
+      ctx.strokeStyle = bodyColor;
+      ctx.lineWidth = 1;
+      ctx.globalAlpha = 1;
+      ctx.beginPath(); ctx.moveTo(x, bodyTop); ctx.lineTo(x, bodyBot); ctx.stroke();
+    }
+    ctx.globalAlpha = 1;
+  });
+
+  // ── LINE LEVELS (drawn after candles) ──
+  levels.filter(l=>l.type==='line').forEach(lv => {
+    if(!lv.price||lv.price<pMin||lv.price>pMax) return;
+    const y = py(lv.price);
+    ctx.globalAlpha = lv.alpha || 0.7;
+    ctx.strokeStyle = lv.color;
+    ctx.lineWidth = lv.width || 1;
+
+    if(lv.style==='dashed') ctx.setLineDash([6,4]);
+    else if(lv.style==='dotted') ctx.setLineDash([2,3]);
+    else ctx.setLineDash([]);
+
+    // Price line — blinking accent if current
+    if(lv.isPrice) {
+      ctx.lineWidth = 1;
+      ctx.strokeStyle = C.accent;
+      ctx.globalAlpha = 0.9;
+      ctx.setLineDash([4,4]);
+    }
+
+    ctx.beginPath();
+    ctx.moveTo(PAD_L, y); ctx.lineTo(W - PAD_R, y);
+    ctx.stroke();
+    ctx.setLineDash([]);
+
+    // Label on right side
+    ctx.globalAlpha = 1;
+    ctx.fillStyle = lv.color;
+    const fontSize = lv.trade ? 9.5 : lv.isPrice ? 10 : 8.5;
+    ctx.font = `${lv.trade||lv.isPrice?'bold ':''}${Math.round(fontSize*dpr)/dpr}px 'Share Tech Mono', monospace`;
+    ctx.textAlign = 'left';
+    const labelText = lv.isPrice ? `▶ ${fPrice(lv.price)}` : `${lv.label}  ${fPrice(lv.price)}`;
+    ctx.fillText(labelText, W - PAD_R + 3, y + 3);
+  });
+  ctx.globalAlpha = 1;
+
+  // ── CHART BORDER ──
+  ctx.strokeStyle = C.borderBrt;
+  ctx.lineWidth = 1;
+  ctx.setLineDash([]);
+  ctx.strokeRect(PAD_L, PAD_T, chartW, chartH);
+
+  // ── WATERMARK ──
+  ctx.font = `bold ${Math.round(11*dpr)/dpr}px 'Orbitron', monospace`;
+  ctx.fillStyle = 'rgba(0,212,255,0.06)';
+  ctx.textAlign = 'center';
+  ctx.fillText('CRYPTEX', W/2, H/2 + 6);
+}
+
+/**
+ * buildLegend — returns HTML for legend items
+ */
+function buildLegend(levels) {
+  const seen = new Set();
+  const items = [];
+  const add = (color, label) => {
+    if(!seen.has(label)){ seen.add(label); items.push({color,label}); }
+  };
+  add(C.bull,   '● BULL CANDLE');
+  add(C.bear,   '● BEAR CANDLE');
+  if(levels.some(l=>l.ztype==='ob'))      add(C.bull, '▬ ORDER BLOCK');
+  if(levels.some(l=>l.ztype==='fvg'))     add(C.orange,'▬ FVG');
+  if(levels.some(l=>l.label&&l.label.startsWith('HH')||l.label?.startsWith('HL'))) add(C.bull,'── STRUCTURE');
+  if(levels.some(l=>l.label&&(l.label.startsWith('BOS')||l.label?.startsWith('MSS')))) add(C.accent,'⋯ BOS/MSS');
+  if(levels.some(l=>l.label&&l.label.startsWith('EQH')||l.label?.startsWith('EQL'))) add(C.bear,'-- EQH/EQL');
+  if(levels.some(l=>l.label&&l.label.startsWith('FIB'))) add(C.gold,'⋯ FIB LEVELS');
+  if(levels.some(l=>l.label==='SL'))      add(C.bear, '── SL');
+  if(levels.some(l=>l.label&&l.label.startsWith('TP'))) add(C.bull,'── TP LEVELS');
+  if(levels.some(l=>l.label==='ENTRY ZONE')) add(C.accent,'▬ ENTRY ZONE');
+  if(levels.some(l=>l.label==='PRICE'))   add(C.accent,'-- PRICE');
+  return items.map(it=>`<span class="chart-legend-item"><span class="chart-legend-dot" style="background:${it.color};"></span>${it.label}</span>`).join('');
+}
+
+/**
+ * renderChart — entry point called from scan functions
+ * mode: 'single' | 'smc'
+ */
+function renderChart(mode, candles, levels, label, tf) {
+  CHART_STATE[mode] = { candles, levels, label, tf };
+  const canvasId = mode==='single' ? 'single-chart-canvas' : 'smc-chart-canvas';
+  const labelId  = mode==='single' ? 'single-chart-label' : 'smc-chart-label';
+  const legendId = mode==='single' ? 'single-chart-legend' : 'smc-chart-legend';
+  const canvas = $(canvasId);
+  const labelEl = $(labelId);
+  const legendEl = $(legendId);
+  if(!canvas) return;
+
+  // Show the chart row (single coin)
+  if(mode==='single') { const row=$('single-chart-row'); if(row) row.style.display=''; }
+
+  if(labelEl) labelEl.textContent = `${label} · ${tf.toUpperCase()} · ${candles.length} CANDLES`;
+  if(legendEl) legendEl.innerHTML = buildLegend(levels);
+
+  // Defer draw until layout is settled
+  requestAnimationFrame(()=>{
+    canvas.style.height = '380px';
+    drawChart(canvas, candles, levels);
+  });
+}
+
+/* ── Chart Modal ── */
+function openChartModal(mode) {
+  CHART_STATE.activeMode = mode;
+  const state = CHART_STATE[mode];
+  const modal = $('chart-modal');
+  const modalCanvas = $('chart-modal-canvas');
+  const modalTitle = $('chart-modal-title');
+  const modalLegend = $('chart-modal-legend');
+  if(!modal||!state||!state.candles) return;
+
+  modal.style.display = 'flex';
+  document.body.style.overflow = 'hidden';
+  if(modalTitle) modalTitle.textContent = `CRYPTEX — ${state.label} ${state.tf.toUpperCase()} CHART`;
+  if(modalLegend) modalLegend.innerHTML = buildLegend(state.levels||[]);
+
+  // Wait for modal layout then draw at full size
+  requestAnimationFrame(()=>{
+    requestAnimationFrame(()=>{
+      if(modalCanvas) {
+        modalCanvas.style.height = (window.innerHeight - 140)+'px';
+        drawChart(modalCanvas, state.candles, state.levels||[]);
+      }
+    });
+  });
+}
+
+function closeChartModal() {
+  const modal = $('chart-modal');
+  if(modal) modal.style.display = 'none';
+  document.body.style.overflow = '';
+}
+
+// Close modal on ESC
+document.addEventListener('keydown', e => { if(e.key==='Escape') closeChartModal(); });
+
+/* ── Download chart as PNG ── */
+function downloadChart(canvasId, filename) {
+  const canvas = $(canvasId);
+  // If called from modal, use the right canvas
+  const targetCanvas = canvas || $('chart-modal-canvas');
+  if(!targetCanvas) return;
+  const mode = CHART_STATE.activeMode || (canvasId.includes('smc')?'smc':'single');
+  const state = CHART_STATE[mode];
+  // Redraw at 2x resolution for clean download
+  const offscreen = document.createElement('canvas');
+  const W = targetCanvas.offsetWidth || 1400;
+  const H = targetCanvas.offsetHeight || 800;
+  offscreen.width = W * 2;
+  offscreen.height = H * 2;
+  offscreen.style.width = W+'px';
+  offscreen.style.height = H+'px';
+  const ctx2 = offscreen.getContext('2d');
+  ctx2.scale(2,2);
+  if(state&&state.candles) {
+    drawChart(offscreen, state.candles, state.levels||[]);
+  } else {
+    // Fallback: just save what's on canvas
+    const a = document.createElement('a');
+    a.href = targetCanvas.toDataURL('image/png');
+    a.download = (filename||'chart')+'.png';
+    a.click(); return;
+  }
+  const a = document.createElement('a');
+  a.href = offscreen.toDataURL('image/png');
+  const fn = state ? `${state.label}_${state.tf}_${new Date().toISOString().slice(0,10)}` : (filename||'chart');
+  a.download = fn.replace(/[^a-z0-9_\-]/gi,'_')+'.png';
+  a.click();
+}
+
+/* ══════════════════════════════════════════════════════════════
    COPY SIGNAL TO CLIPBOARD
 ══════════════════════════════════════════════════════════════ */
 function copySignalToClipboard() {
@@ -4071,6 +4704,23 @@ function init() {
   $('smc-fetch-btn').addEventListener('click',runSmcCoinScan);
   $('smc-coin-input').addEventListener('keydown',e=>{if(e.key==='Enter')runSmcCoinScan();});
   $('smc-market-fetch-btn').addEventListener('click',runSmcMarketScan);
+  // Chart modal backdrop close
+  $('chart-modal').addEventListener('click',e=>{ if(e.target.id==='chart-modal') closeChartModal(); });
+  // Redraw chart on resize
+  let _resizeTimer;
+  window.addEventListener('resize',()=>{
+    clearTimeout(_resizeTimer);
+    _resizeTimer=setTimeout(()=>{
+      ['single','smc'].forEach(mode=>{
+        const s=CHART_STATE[mode];
+        if(s&&s.candles) renderChart(mode,s.candles,s.levels||[],s.label,s.tf);
+      });
+      if(CHART_STATE.activeMode&&$('chart-modal').style.display!=='none'){
+        const s=CHART_STATE[CHART_STATE.activeMode];
+        if(s&&s.candles) openChartModal(CHART_STATE.activeMode);
+      }
+    },200);
+  });
   $('desc-toggle').addEventListener('click',()=>{
     const el=$('coin-description');
     el.classList.toggle('expanded');
