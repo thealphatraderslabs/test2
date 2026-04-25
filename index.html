@@ -3647,12 +3647,12 @@ function checkPriceLocation(candles, currentPrice, bias) {
   if (pct < 45)  zone = 'DISCOUNT';
   if (pct > 55)  zone = 'PREMIUM';
 
-  // Gate passes when price zone aligns with bias
+  // Gate passes ONLY when zone clearly aligns with bias
+  // Equilibrium (45–55%) has no location edge — skip it
   let pass = false;
   if (bias === 'BULLISH' && zone === 'DISCOUNT') pass = true;
   if (bias === 'BEARISH' && zone === 'PREMIUM')  pass = true;
-  // Equilibrium is borderline — allow it but mark as weak
-  const borderline = (zone === 'EQUILIBRIUM');
+  const borderline = false; // Equilibrium no longer passes
 
   // Fib levels for reference
   const fibs = [0.236, 0.382, 0.5, 0.618, 0.786];
@@ -3680,10 +3680,12 @@ function checkPriceAtLevel(candles, currentPrice, bias, eqhEql) {
     if (bias === 'BULLISH' && !isBull) return false;
     if (bias === 'BEARISH' && !isBear) return false;
     if (ob.mitigated) return false;
-    // Inside or very close
-    const mid = (ob.high + ob.low) / 2;
-    const dist = Math.abs(currentPrice - mid) / currentPrice;
-    return ob.inside || dist < PROXIMITY;
+    // Inside or within PROXIMITY of the OB edge (not midpoint)
+    if (ob.inside) return true;
+    const nearEdge = bias === 'BULLISH'
+      ? (currentPrice - ob.high) / currentPrice  // how far above the OB top
+      : (ob.low - currentPrice) / currentPrice;  // how far below the OB bottom
+    return nearEdge >= -PROXIMITY && nearEdge <= PROXIMITY;
   });
 
   // FVGs — unfilled, correct direction, price inside or approaching
@@ -4063,7 +4065,7 @@ async function runSmcMarketScan() {
             grade = 'CONFLICT'; gradeLabel = '⚠ CONFLICT'; gradeCls = 'conflict-setup';
           } else if (etf.internalState === 'PULLBACK' && deriv.agreement === 'CONFIRM') {
             grade = 'ELITE'; gradeLabel = '★ A+ ELITE'; gradeCls = 'elite-setup';
-          } else if (deriv.agreement === 'CONFIRM' || (etf.internalState === 'ALIGNED' && deriv.strength >= 0)) {
+          } else if (deriv.agreement === 'CONFIRM' || (etf.internalState === 'ALIGNED' && deriv.agreement === 'CONFIRM')) {
             grade = 'HIGH'; gradeLabel = 'A HIGH'; gradeCls = 'long-setup';
           } else {
             grade = 'WATCH'; gradeLabel = 'B WATCH'; gradeCls = 'watch-setup';
@@ -4082,31 +4084,42 @@ async function runSmcMarketScan() {
           if (deriv.agreement !== 'NEUTRAL') narrativeParts.push(`Derivatives: ${deriv.agreement}${deriv.strength >= 2 ? ' (STRONG)' : ''}`);
           if (loc.nearGolden) narrativeParts.push(`Near Fib ${loc.nearGolden.label}`);
 
-          // Action hint
+          // Action hint — plain trader language, no internal terms
           let actionHint = '';
+          const levelWord = atLevel.levelType === 'SWEEP' ? 'liquidity sweep' : 'key level';
           if (etf.internalState === 'PULLBACK' && htf.bias === 'BULLISH')
-            actionHint = 'Internal bearish pullback in bullish structure. Watch for internal MSS → bullish flip = entry trigger.';
+            actionHint = 'Price is pulling back into a key demand area in a bullish market. Wait for buyers to step in and price to turn back up — that confirmation is your entry.';
           else if (etf.internalState === 'PULLBACK' && htf.bias === 'BEARISH')
-            actionHint = 'Internal bullish pullback in bearish structure. Watch for internal MSS → bearish flip = entry trigger.';
+            actionHint = 'Price is bouncing up into a key supply area in a bearish market. Wait for sellers to reject price and it to turn back down — that rejection is your entry.';
           else if (etf.internalState === 'ALIGNED')
-            actionHint = 'Structure aligned across timeframes. Momentum continuation likely — wait for retest of nearest OB/FVG.';
+            actionHint = deriv.agreement === 'CONFIRM'
+              ? 'Market is moving with momentum in the right direction, confirmed by derivatives. Look for a small retest of the nearest level before joining the move.'
+              : 'Price and structure are aligned. Wait for a small pullback to the nearest level to get a better entry rather than chasing.';
           else
-            actionHint = 'Monitor for entry TF structure confirmation before committing.';
+            actionHint = 'Setup is valid but price action needs to confirm direction before entering. Monitor for a clear move in the expected direction.';
 
-          if (deriv.agreement === 'CONFLICT')
-            actionHint = '⚠ DERIVATIVES CONFLICT: Funding rate opposes direction. High risk. Watch only — do not enter until funding normalises.';
+          if (deriv.agreement === 'CONFLICT' && deriv.strength >= 2)
+            actionHint = '⚠ CAUTION: The derivatives market is positioned heavily against this direction. The setup is structurally valid but the crowd disagrees — watch only until positioning normalises.';
 
-          // All active badges for display
+          // WHY THIS COIN — plain English summary for the trader
+          const whySummary = (() => {
+            const dir = htf.bias === 'BULLISH' ? 'bullish' : 'bearish';
+            const locStr = loc.zone === 'DISCOUNT' ? 'discounted price area' : 'premium price area';
+            const lvlStr = atLevel.levelType === 'OB' ? 'institutional demand zone' : atLevel.levelType === 'FVG' ? 'price imbalance gap' : 'liquidity sweep';
+            const intStr = etf.internalState === 'PULLBACK' ? 'currently pulling back — ideal entry window' : etf.internalState === 'ALIGNED' ? 'momentum aligned and moving' : 'structure building';
+            const derivStr = deriv.agreement === 'CONFIRM' ? ' Crowd positioning adds fuel.' : deriv.agreement === 'CONFLICT' ? ' ⚠ Crowd disagrees — caution.' : '';
+            return `${htf.confidence===2?'Strong':'Clear'} ${dir} trend. Price in ${locStr} at a ${lvlStr}. ${intStr}.${derivStr}`;
+          })();
+
+          // Badges — no duplicates with key level
           const badges = [];
           if (volCtx.badge && volCtx.badge.cls !== 'dim') badges.push(volCtx.badge);
           if (volCtx.spikeBadge) badges.push(volCtx.spikeBadge);
-          deriv.signals.filter(s => s.cls !== 'dim').forEach(s => badges.push(s));
-          if (atLevel.levelType === 'OB') badges.push({ txt: `AT ${htf.bias === 'BULLISH' ? 'BULL' : 'BEAR'} OB`, cls: htf.bias === 'BULLISH' ? 'fired-bull' : 'fired-bear' });
-          if (atLevel.levelType === 'FVG') badges.push({ txt: `AT ${htf.bias === 'BULLISH' ? 'BULL' : 'BEAR'} FVG`, cls: htf.bias === 'BULLISH' ? 'fired-bull' : 'fired-bear' });
-          if (atLevel.levelType === 'SWEEP') badges.push({ txt: atLevel.recentSweep.label, cls: 'fired-gold' });
-          if (htf.confidence === 2) badges.push({ txt: 'STRONG HTF STRUCTURE', cls: htf.bias === 'BULLISH' ? 'fired-bull' : 'fired-bear' });
-          if (etf.internalState === 'PULLBACK') badges.push({ txt: 'PULLBACK — ENTRY WINDOW', cls: 'fired-gold' });
-          if (loc.nearGolden) badges.push({ txt: `FIB ${loc.nearGolden.label} CONFLUENCE`, cls: 'fired-gold' });
+          deriv.signals.filter(s => s.cls !== 'dim' && s.cls !== 'conflict').forEach(s => badges.push(s));
+          if (htf.confidence === 2) badges.push({ txt: htf.bias === 'BULLISH' ? 'STRONG UPTREND' : 'STRONG DOWNTREND', cls: htf.bias === 'BULLISH' ? 'fired-bull' : 'fired-bear' });
+          if (etf.internalState === 'PULLBACK') badges.push({ txt: '⚡ ENTRY WINDOW OPEN', cls: 'fired-gold' });
+          if (loc.nearGolden) badges.push({ txt: `FIB ${loc.nearGolden.label} ZONE`, cls: 'fired-gold' });
+          if (atLevel.levelType === 'SWEEP') badges.push({ txt: '🎯 LIQUIDITY SWEPT', cls: 'fired-gold' });
 
           results.push({
             symbol: coin.symbol,
@@ -4135,6 +4148,7 @@ async function runSmcMarketScan() {
             volTier: volCtx.tier,
             badges: badges.slice(0, 6),
             narrative: narrativeParts.join(' · '),
+            whySummary,
             actionHint,
             activeOBs: atLevel.allOBs.length,
             activeFVGs: atLevel.allFVGs.length,
@@ -4219,18 +4233,7 @@ function renderSmcMarketCards() {
     const gradeColor = isElite ? 'var(--gold)' : d.grade === 'HIGH' ? 'var(--bull)' : isConflict ? 'var(--bear)' : 'var(--orange)';
     const gradeBg    = isElite ? 'rgba(255,213,79,0.12)' : d.grade === 'HIGH' ? 'rgba(0,230,118,0.1)' : isConflict ? 'rgba(255,61,87,0.12)' : 'rgba(255,152,0,0.1)';
 
-    // Gate status row
-    const gates = [
-      { label: 'HTF BIAS',  pass: true,        note: d.htfBias + (d.htfConfidence === 2 ? ' ●●' : ' ●○') },
-      { label: 'LOCATION',  pass: !d.locationBorderline, note: d.locationZone + ' ' + d.locationPct.toFixed(0) + '%' },
-      { label: 'AT LEVEL',  pass: true,        note: d.levelType },
-      { label: 'ETF STRUCT',pass: true,        note: d.etfBias + (d.etfLastEvent ? ' ' + d.etfLastEvent.type : '') },
-    ];
-    const gateHTML = gates.map(g => `
-      <div style="flex:1;min-width:0;text-align:center;">
-        <div style="font-family:var(--font-mono);font-size:0.42rem;color:var(--text-dim);letter-spacing:0.5px;margin-bottom:2px;">${g.label}</div>
-        <div style="font-family:var(--font-mono);font-size:0.5rem;color:${g.pass ? 'var(--bull)' : 'var(--orange)'};letter-spacing:0.3px;">✓ ${g.note}</div>
-      </div>`).join('');
+
 
     // Internal state badge
     const intStateColor = d.internalState === 'PULLBACK' ? 'var(--gold)' : d.internalState === 'ALIGNED' ? 'var(--bull)' : 'var(--text-dim)';
@@ -4259,9 +4262,10 @@ function renderSmcMarketCards() {
           <span style="font-family:var(--font-mono);font-size:0.72rem;" class="${chgCls}">${fPct(d.changePct24h)}</span>
         </div>
 
-        <!-- 4 GATE STATUS -->
-        <div style="display:flex;gap:3px;padding:6px 8px;background:var(--bg-elevated);border:1px solid var(--border);border-radius:var(--radius);margin-bottom:8px;">
-          ${gateHTML}
+        <!-- WHY THIS COIN — plain English setup summary -->
+        <div style="padding:7px 10px;background:var(--bg-elevated);border:1px solid var(--border);border-radius:var(--radius);margin-bottom:8px;">
+          <div style="font-family:var(--font-mono);font-size:0.45rem;color:var(--text-dim);letter-spacing:1.5px;margin-bottom:3px;">WHY THIS COIN</div>
+          <div style="font-family:var(--font-mono);font-size:0.6rem;color:var(--text-secondary);line-height:1.6;">${d.whySummary}</div>
         </div>
 
         <!-- INTERNAL + DERIVATIVES STATUS -->
