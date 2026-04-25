@@ -4037,19 +4037,9 @@ function buildChartLevels(data) {
 
   // Each level: { type:'zone'|'line', price, priority, ... }
   // priority 1=highest (always shown), 5=lowest (first to drop)
+  // NOTE: Trade plan (SL/TP/Entry) intentionally excluded — chart shows only
+  //       levels from LEVEL VALIDATION & STATUS section for a clean chart.
   const levels = [];
-
-  // ── TRADE PLAN (priority 1 — always shown) ──
-  if(confluence && confluence.tradePlan) {
-    const tp = confluence.tradePlan;
-    if(tp.entryZone) levels.push({ type:'zone', fillTop:tp.entryZone.high, fillBot:tp.entryZone.low,
-      fillColor:'rgba(0,212,255,0.07)', borderColor:C.accent,
-      label:'ENTRY', labelColor:C.accent, price:tp.entryZone.mid, priority:1, ztype:'trade' });
-    if(tp.slPrice)  levels.push({ type:'line', price:tp.slPrice, label:'SL', color:C.bear,  style:'solid', width:1.5, alpha:1,   priority:1, trade:true });
-    if(tp.tp1)      levels.push({ type:'line', price:tp.tp1,    label:'TP1', color:C.bull,  style:'solid', width:1.5, alpha:0.95, priority:1, trade:true });
-    if(tp.tp2)      levels.push({ type:'line', price:tp.tp2,    label:'TP2', color:C.bull,  style:'solid', width:1,   alpha:0.75, priority:1, trade:true });
-    if(tp.tp3)      levels.push({ type:'line', price:tp.tp3,    label:'TP3', color:C.bull,  style:'solid', width:1,   alpha:0.6,  priority:1, trade:true });
-  }
 
   // ── CURRENT PRICE (priority 1) ──
   if(currentPrice) levels.push({ type:'line', price:currentPrice, label:'', color:C.accent, style:'dashed', width:1, alpha:0.85, priority:1, isPrice:true });
@@ -4118,17 +4108,7 @@ function buildChartLevels(data) {
     if(nearEQL) levels.push({ type:'line', price:nearEQL.level, label:`EQL`, color:C.bull, style:'dashed', width:1, alpha:0.55, priority:3 });
   }
 
-  // ── FIBS — only 0.5 (equilibrium) shown as a subtle reference (priority 4) ──
-  if(pd && pd.fibLevels) {
-    const eq = pd.fibLevels.find(f => Math.abs(f.fib-0.5)<0.01);
-    if(eq) levels.push({ type:'line', price:eq.price, label:'EQ 50%', color:'rgba(255,213,79,0.5)', style:'dotted', width:0.8, alpha:0.4, priority:4 });
-  }
-
-  // ── PIVOT POINT only (no R1-R3/S1-S3 spam) (priority 4) ──
-  if(pivots) {
-    const pp = pivots.find(p => p.type==='pivot');
-    if(pp) levels.push({ type:'line', price:pp.price, label:'PP', color:C.accent, style:'dotted', width:0.8, alpha:0.35, priority:4 });
-  }
+  // Pivot Point removed — chart shows only validation-section levels.
 
   return levels;
 }
@@ -4387,14 +4367,10 @@ function buildLegend(levels) {
   add(C.bear,   '● BEAR CANDLE');
   if(levels.some(l=>l.ztype==='ob'))      add(C.bull, '▬ ORDER BLOCK');
   if(levels.some(l=>l.ztype==='fvg'))     add(C.orange,'▬ FVG');
-  if(levels.some(l=>l.label&&l.label.startsWith('HH')||l.label?.startsWith('HL'))) add(C.bull,'── STRUCTURE');
+  if(levels.some(l=>l.label&&(l.label.startsWith('HH')||l.label?.startsWith('HL')))) add(C.bull,'── STRUCTURE');
   if(levels.some(l=>l.label&&(l.label.startsWith('BOS')||l.label?.startsWith('MSS')))) add(C.accent,'⋯ BOS/MSS');
-  if(levels.some(l=>l.label&&l.label.startsWith('EQH')||l.label?.startsWith('EQL'))) add(C.bear,'-- EQH/EQL');
-  if(levels.some(l=>l.label&&l.label.startsWith('FIB'))) add(C.gold,'⋯ FIB LEVELS');
-  if(levels.some(l=>l.label==='SL'))      add(C.bear, '── SL');
-  if(levels.some(l=>l.label&&l.label.startsWith('TP'))) add(C.bull,'── TP LEVELS');
-  if(levels.some(l=>l.label==='ENTRY ZONE')) add(C.accent,'▬ ENTRY ZONE');
-  if(levels.some(l=>l.label==='PRICE'))   add(C.accent,'-- PRICE');
+  if(levels.some(l=>l.label&&(l.label.startsWith('EQH')||l.label?.startsWith('EQL')))) add(C.bear,'-- EQH/EQL');
+  if(levels.some(l=>l.label&&l.label.startsWith('PRICE'))) add(C.accent,'-- PRICE');
   return items.map(it=>`<span class="chart-legend-item"><span class="chart-legend-dot" style="background:${it.color};"></span>${it.label}</span>`).join('');
 }
 
