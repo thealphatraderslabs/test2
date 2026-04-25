@@ -577,6 +577,11 @@ body {
 .scan-progress-bar-outer { height:4px; background:var(--border); border-radius:2px; overflow:hidden; margin-bottom:6px; }
 .scan-progress-bar-inner { height:100%; background:var(--orange); border-radius:2px; transition:width 0.3s ease; }
 .scan-progress-text { font-family:var(--font-mono); font-size:0.65rem; color:var(--text-secondary); letter-spacing:1px; }
+.smc-gate-row { display:flex; align-items:center; gap:8px; font-family:var(--font-mono); font-size:0.58rem; color:var(--text-dim); letter-spacing:0.5px; }
+.smc-gate-row.pass { color:var(--bull); }
+.smc-gate-row.fail { color:var(--bear); }
+.smc-gate-dot { font-size:0.7rem; width:14px; display:inline-block; text-align:center; }
+.smc-gate-lbl { flex:1; }
 
 /* ── TRADE SIGNAL CARD ── */
 .trade-signal-card {
@@ -1292,7 +1297,32 @@ body {
     <div id="smc-market-progress" style="display:none;">
       <div class="scan-progress">
         <div class="scan-progress-bar-outer"><div class="scan-progress-bar-inner" id="smc-progress-bar" style="width:0%"></div></div>
-        <div class="scan-progress-text" id="smc-progress-text">Scanning 0 / 30 coins...</div>
+        <div class="scan-progress-text" id="smc-progress-text">Scanning...</div>
+      </div>
+      <!-- Live scan info panel -->
+      <div id="smc-scan-info-panel" style="margin-top:18px;display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+        <!-- Left: rotating education messages -->
+        <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius-lg);padding:16px 18px;">
+          <div style="font-family:var(--font-mono);font-size:0.55rem;color:var(--orange);letter-spacing:2px;margin-bottom:10px;">◈ WHAT THIS SCAN DOES</div>
+          <div id="smc-scan-edu-msg" style="font-family:var(--font-mono);font-size:0.68rem;color:var(--text-secondary);line-height:1.7;min-height:72px;transition:opacity 0.4s ease;"></div>
+          <div style="margin-top:10px;display:flex;gap:6px;" id="smc-edu-dots"></div>
+        </div>
+        <!-- Right: live coin being analysed + gate status -->
+        <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius-lg);padding:16px 18px;">
+          <div style="font-family:var(--font-mono);font-size:0.55rem;color:var(--orange);letter-spacing:2px;margin-bottom:10px;">⬡ LIVE ANALYSIS</div>
+          <div style="font-family:var(--font-mono);font-size:0.62rem;color:var(--text-dim);margin-bottom:6px;">CURRENTLY CHECKING</div>
+          <div id="smc-live-coin" style="font-family:var(--font-display);font-size:1.1rem;font-weight:900;color:var(--accent);letter-spacing:3px;margin-bottom:12px;">—</div>
+          <div id="smc-live-gates" style="display:flex;flex-direction:column;gap:5px;">
+            <div class="smc-gate-row" id="gate-row-1"><span class="smc-gate-dot" id="gate-dot-1">○</span><span class="smc-gate-lbl">GATE 1 — HTF BIAS CLEAR?</span></div>
+            <div class="smc-gate-row" id="gate-row-2"><span class="smc-gate-dot" id="gate-dot-2">○</span><span class="smc-gate-lbl">GATE 2 — CORRECT P/D ZONE?</span></div>
+            <div class="smc-gate-row" id="gate-row-3"><span class="smc-gate-dot" id="gate-dot-3">○</span><span class="smc-gate-lbl">GATE 3 — AT SMC LEVEL?</span></div>
+            <div class="smc-gate-row" id="gate-row-4"><span class="smc-gate-dot" id="gate-dot-4">○</span><span class="smc-gate-lbl">GATE 4 — ENTRY STRUCTURE?</span></div>
+          </div>
+          <div style="margin-top:12px;padding-top:10px;border-top:1px solid var(--border);display:flex;justify-content:space-between;">
+            <span style="font-family:var(--font-mono);font-size:0.55rem;color:var(--text-dim);">PASSED ALL GATES</span>
+            <span id="smc-live-passed" style="font-family:var(--font-mono);font-size:0.65rem;color:var(--bull);font-weight:700;">0</span>
+          </div>
+        </div>
       </div>
     </div>
     <div class="empty-state" id="smc-market-empty">
@@ -3842,6 +3872,94 @@ function getVolumeContext(coin, allCoins) {
   return { rank, rankPct, tier, badge, spikeBadge };
 }
 
+/* ══════════════════════════════════════════════════════════════
+   SCAN INFO PANEL — rotating education + live gate display
+══════════════════════════════════════════════════════════════ */
+const SMC_EDU_MESSAGES = [
+  { title: "WHAT IS THIS SCAN?", body: "We are scanning every liquid USDT perpetual futures pair on the exchange — potentially 300–500 coins — and running a 4-gate SMC engine on each one to find only the setups worth your attention." },
+  { title: "GATE 1 — HTF BIAS", body: "Using the last 150 candles we identify whether price is making Higher Highs + Higher Lows (bullish) or Lower Lows + Lower Highs (bearish). Ranging markets are skipped entirely — no setup exists in a range." },
+  { title: "GATE 2 — PRICE LOCATION", body: "Bullish bias only qualifies if price is in DISCOUNT (below 45% of the 150-candle range). Bearish bias only qualifies in PREMIUM (above 55%). If the balloon already popped, we skip the coin." },
+  { title: "GATE 3 — AT AN SMC LEVEL", body: "Price must be sitting inside or within 1.5% of an unmitigated Order Block, inside an unfilled Fair Value Gap, or have just swept an Equal High/Low liquidity pool in the last 5 candles. Floating in air = skip." },
+  { title: "GATE 4 — ENTRY STRUCTURE", body: "The entry timeframe (last 50 candles) must show structure that agrees with the HTF bias — a BOS or MSS in the same direction. If the lower timeframe is fighting the higher timeframe, we skip." },
+  { title: "WHAT IS AN ORDER BLOCK?", body: "An Order Block is the last bearish candle before a strong bullish impulse (or vice versa). It represents where institutions placed large orders. When price returns to that zone, it often reacts strongly." },
+  { title: "WHAT IS A FAIR VALUE GAP?", body: "A Fair Value Gap (FVG) is a 3-candle imbalance where price moved so fast it left an unfilled gap. Smart money tends to come back to fill these gaps before continuing the move — a high-probability entry zone." },
+  { title: "WHAT IS BOS vs MSS?", body: "BOS (Break of Structure) = price continues the trend by breaking a previous swing high/low. MSS (Market Structure Shift) = price breaks the OPPOSITE swing, signalling a trend reversal. MSS setups are higher quality." },
+  { title: "THE DERIVATIVES CHERRY", body: "After all 4 gates pass, we check funding rates. Extreme negative funding (shorts paying) on a bullish setup = crowd is wrong, squeeze imminent. This is the cherry on the cake — it upgrades a setup to ELITE." },
+  { title: "INTERNAL STRUCTURE STATE", body: "We also check the last 15 candles for internal structure. A PULLBACK state means price is temporarily retracing against the HTF bias — this is the ideal entry window. ALIGNED means the move is already happening." },
+  { title: "WHY SO FEW RESULTS?", body: "That is the point. Out of 400+ coins, typically only 5–20 will pass all 4 gates simultaneously. These are the only coins worth opening a chart for — everything else is noise." },
+  { title: "WHAT TO DO WITH RESULTS?", body: "ELITE setups = internal pullback + derivatives confirm. Open the chart, look for an internal MSS flip as your entry trigger. HIGH setups = still valid, just fewer confluences. WATCH = monitor, not yet actionable." },
+];
+
+let _eduInterval = null;
+let _eduIdx = 0;
+let _passedCount = 0;
+
+function startScanEduPanel() {
+  _eduIdx = 0;
+  _passedCount = 0;
+  const panel = document.getElementById('smc-scan-info-panel');
+  if (!panel) return;
+
+  // Build dot indicators
+  const dotsEl = document.getElementById('smc-edu-dots');
+  if (dotsEl) {
+    dotsEl.innerHTML = SMC_EDU_MESSAGES.map((_, i) =>
+      `<div style="width:5px;height:5px;border-radius:50%;background:${i===0?'var(--orange)':'var(--border)'};transition:background 0.3s ease;" id="edu-dot-${i}"></div>`
+    ).join('');
+  }
+
+  function showMsg(idx) {
+    const msg = SMC_EDU_MESSAGES[idx];
+    const el = document.getElementById('smc-scan-edu-msg');
+    if (!el) return;
+    el.style.opacity = '0';
+    setTimeout(() => {
+      el.innerHTML = `<span style="color:var(--text-primary);font-weight:600;">${msg.title}</span><br>${msg.body}`;
+      el.style.opacity = '1';
+    }, 200);
+    // Update dots
+    SMC_EDU_MESSAGES.forEach((_, i) => {
+      const d = document.getElementById(`edu-dot-${i}`);
+      if (d) d.style.background = i === idx ? 'var(--orange)' : 'var(--border)';
+    });
+  }
+
+  showMsg(0);
+  _eduInterval = setInterval(() => {
+    _eduIdx = (_eduIdx + 1) % SMC_EDU_MESSAGES.length;
+    showMsg(_eduIdx);
+  }, 4500);
+}
+
+function stopScanEduPanel() {
+  if (_eduInterval) { clearInterval(_eduInterval); _eduInterval = null; }
+}
+
+function updateLiveCoin(symbol) {
+  const el = document.getElementById('smc-live-coin');
+  if (el) el.textContent = symbol || '—';
+  // Reset gates to pending
+  for (let i = 1; i <= 4; i++) {
+    const dot = document.getElementById(`gate-dot-${i}`);
+    const row = document.getElementById(`gate-row-${i}`);
+    if (dot) dot.textContent = '○';
+    if (row) { row.classList.remove('pass','fail'); }
+  }
+}
+
+function updateLiveGate(gateNum, passed) {
+  const dot = document.getElementById(`gate-dot-${gateNum}`);
+  const row = document.getElementById(`gate-row-${gateNum}`);
+  if (dot) dot.textContent = passed ? '✓' : '✗';
+  if (row) { row.classList.remove('pass','fail'); row.classList.add(passed ? 'pass' : 'fail'); }
+}
+
+function updateLivePassed(count) {
+  _passedCount = count;
+  const el = document.getElementById('smc-live-passed');
+  if (el) el.textContent = count;
+}
+
 /* ═══════════════════════════════════════════════════════════════
    MAIN SCANNER RUNNER — runSmcMarketScan
 ═══════════════════════════════════════════════════════════════ */
@@ -3880,6 +3998,7 @@ async function runSmcMarketScan() {
 
     $('smc-market-loading').style.display = 'none';
     $('smc-market-progress').style.display = 'block';
+    startScanEduPanel();
 
     // ── PHASE 3: Kline fetch + 4-Gate SMC Engine in parallel batches ──
     const BATCH_SIZE = 10;
@@ -3889,7 +4008,7 @@ async function runSmcMarketScan() {
       const batch = liquidCoins.slice(i, i + BATCH_SIZE);
       const pct = Math.min(100, (i / liquidCoins.length * 100)).toFixed(0);
       $('smc-progress-bar').style.width = pct + '%';
-      $('smc-progress-text').textContent = `SMC Gate Analysis: ${Math.min(i + BATCH_SIZE, liquidCoins.length)} / ${liquidCoins.length} coins (${pct}%)`;
+      $('smc-progress-text').textContent = `Gate Analysis: ${Math.min(i + BATCH_SIZE, liquidCoins.length)} / ${liquidCoins.length} coins scanned · ${_passedCount} passed all gates (${pct}%)`;
 
       // Fetch 200 candles per coin in parallel
       const batchCandles = await Promise.allSettled(
@@ -3903,25 +4022,31 @@ async function runSmcMarketScan() {
           if (!candles || candles.length < 50) continue;
           const cp = candles[candles.length - 1].c;
           const volCtx = volContextMap[coin.symbol];
+          updateLiveCoin(coin.symbol);
 
           // ── GATE 1: HTF Bias ──
           const htf = checkHTFBias(candles);
-          if (htf.bias === 'RANGING') continue; // No clear trend — skip
+          updateLiveGate(1, htf.bias !== 'RANGING');
+          if (htf.bias === 'RANGING') continue;
 
           // ── GATE 2: Price Location ──
           const loc = checkPriceLocation(candles, cp, htf.bias);
-          if (!loc.pass) continue; // Wrong zone — balloon already popped or wrong side
+          updateLiveGate(2, loc.pass);
+          if (!loc.pass) continue;
 
           // ── GATE 3: Price AT an SMC Level ──
           const eqhEql = detectEQHEQL(detectSwings(candles.slice(-150), 3), candles, cp);
           const atLevel = checkPriceAtLevel(candles, cp, htf.bias, eqhEql);
-          if (!atLevel.pass) continue; // Not at any OB/FVG/sweep — floating in air
+          updateLiveGate(3, atLevel.pass);
+          if (!atLevel.pass) continue;
 
           // ── GATE 4: Entry TF Structure ──
           const etf = checkEntryStructure(candles, htf.bias);
-          if (!etf.pass) continue; // Entry TF structure disagrees with HTF
+          updateLiveGate(4, etf.pass);
+          if (!etf.pass) continue;
 
           // ── ALL 4 GATES PASSED — this coin is interesting ──
+          updateLivePassed(_passedCount + 1);
 
           // Derivatives confirmation
           const deriv = checkDerivatives(coin, htf.bias);
@@ -4021,6 +4146,7 @@ async function runSmcMarketScan() {
     }
 
     STATE.smcMarketData = results;
+    stopScanEduPanel();
     $('smc-market-progress').style.display = 'none';
 
     const longCount     = results.filter(r => r.direction === 'LONG').length;
@@ -4042,6 +4168,7 @@ async function runSmcMarketScan() {
     onScanComplete('SMC SCAN DONE', `${liquidCoins.length} scanned · ${results.length} passed all 4 gates · ${longCount} long, ${shortCount} short`);
 
   } catch (e) {
+    stopScanEduPanel();
     $('smc-market-progress').style.display = 'none';
     $('smc-market-loading').style.display = 'none';
     $('smc-market-empty').style.display = 'flex';
