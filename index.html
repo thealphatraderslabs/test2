@@ -649,7 +649,6 @@ body {
 .tsc-level-block.sl::before { background:var(--bear); }
 .tsc-level-block.tp1::before { background:rgba(0,230,118,0.6); }
 .tsc-level-block.tp2::before { background:var(--bull); }
-.tsc-level-block.tp3::before { background:rgba(0,230,118,1); box-shadow:0 0 8px rgba(0,230,118,0.4); }
 .tsc-level-block.invalidation::before { background:var(--orange); }
 
 .tsc-block-label {
@@ -662,7 +661,7 @@ body {
 }
 .tsc-level-block.entry .tsc-block-price { color:var(--accent); }
 .tsc-level-block.sl .tsc-block-price { color:var(--bear); }
-.tsc-level-block.tp1 .tsc-block-price,.tsc-level-block.tp2 .tsc-block-price,.tsc-level-block.tp3 .tsc-block-price { color:var(--bull); }
+.tsc-level-block.tp1 .tsc-block-price,.tsc-level-block.tp2 .tsc-block-price { color:var(--bull); }
 .tsc-level-block.invalidation .tsc-block-price { color:var(--orange); font-size:0.8rem; }
 
 .tsc-block-sub {
@@ -2460,8 +2459,8 @@ function buildConfluence(extStruct, intStruct, pd, currentPrice, obs, fvgs, tick
     // LONG TPs: SMC levels ABOVE current price, ordered nearest → farthest
     // SHORT TPs: SMC levels BELOW current price, ordered nearest → farthest
     // Each TP must be a real level, not an RR calculation
-    let tp1=null,tp2=null,tp3=null,tp1R='',tp2R='',tp3R='';
-    let tp1Type='',tp2Type='',tp3Type='';
+    let tp1=null,tp2=null,tp1R='',tp2R='';
+    let tp1Type='',tp2Type='';
 
     if(isLong){
       // All SMC levels above entry price, sorted nearest first
@@ -2495,19 +2494,6 @@ function buildConfluence(extStruct, intStruct, pd, currentPrice, obs, fvgs, tick
         tp2=tp2Cands[0].price*0.999;
         tp2R=`${tp2Cands[0].label} at ${fPrice(tp2Cands[0].price)} — ${tp2Cands[0].reason}`;
         tp2Type=tp2Cands[0].label;
-      }
-
-      // TP3: farthest meaningful target — prefer Range High, EQH, or major HH
-      const tp3Cands=tp1Cands.filter(l=>l.price>tp2*(1.005)&&(l.type==='RANGE_HIGH'||l.type==='HH'||l.type==='EQH'||l.type==='BEAR_OB'||l.type==='FIB'));
-      if(tp3Cands.length){
-        const best=tp3Cands.sort((a,b)=>b.score-a.score)[0];
-        tp3=best.price*0.998;
-        tp3R=`${best.label} at ${fPrice(best.price)} — ${best.reason}`;
-        tp3Type=best.label;
-      } else if(pd){
-        tp3=pd.swingHigh*0.997;
-        tp3R=`Swing Range High at ${fPrice(pd.swingHigh)} — PREMIUM zone ceiling, full swing target`;
-        tp3Type='Range High';
       }
 
       // Fallback if no levels found: use closest EQH/HH
@@ -2548,17 +2534,7 @@ function buildConfluence(extStruct, intStruct, pd, currentPrice, obs, fvgs, tick
         tp2R=`${tp2Cands[0].label} at ${fPrice(tp2Cands[0].price)} — ${tp2Cands[0].reason}`;
         tp2Type=tp2Cands[0].label;
       }
-      const tp3Cands=tp1Cands.filter(l=>l.price<tp2*(0.995)&&(l.type==='RANGE_LOW'||l.type==='LL'||l.type==='EQL'||l.type==='BULL_OB'||l.type==='FIB'));
-      if(tp3Cands.length){
-        const best=tp3Cands.sort((a,b)=>b.score-a.score)[0];
-        tp3=best.price*1.002;
-        tp3R=`${best.label} at ${fPrice(best.price)} — ${best.reason}`;
-        tp3Type=best.label;
-      } else if(pd){
-        tp3=pd.swingLow*1.003;
-        tp3R=`Swing Range Low at ${fPrice(pd.swingLow)} — DISCOUNT zone floor, full swing target`;
-        tp3Type='Range Low';
-      }
+
       if(!tp1&&extStruct.lastLL&&extStruct.lastLL.price<entryPrice){
         tp1=extStruct.lastLL.price*1.002;
         tp1R=`Last Lower Low ${fPrice(extStruct.lastLL.price)} — first liquidity cluster below, sell-stops sitting here`;
@@ -2595,7 +2571,6 @@ function buildConfluence(extStruct, intStruct, pd, currentPrice, obs, fvgs, tick
     // ── STEP 6: COMPUTE RR RATIOS (for display only, not for setting levels) ──
     const rrTp1=tp1?+(Math.abs((tp1-entryPrice)/entryPrice*100/riskPct)).toFixed(2):null;
     const rrTp2=tp2?+(Math.abs((tp2-entryPrice)/entryPrice*100/riskPct)).toFixed(2):null;
-    const rrTp3=tp3?+(Math.abs((tp3-entryPrice)/entryPrice*100/riskPct)).toFixed(2):null;
 
     // ── STEP 7: BIAS NARRATIVE ──
     const biasLines=[];
@@ -2619,7 +2594,6 @@ function buildConfluence(extStruct, intStruct, pd, currentPrice, obs, fvgs, tick
       riskPct,
       tp1,tp1R,tp1Type,rrTp1,
       tp2,tp2R,tp2Type,rrTp2,
-      tp3,tp3R,tp3Type,rrTp3,
       invalidation,
       preEntryInvalidation,
       biasLines,
@@ -3119,7 +3093,6 @@ function renderConfluence(confluence) {
   const riskPct=tp.riskPct?tp.riskPct.toFixed(2):'~';
   const tp1RR=tp.rrTp1!=null?tp.rrTp1.toFixed(1):'—';
   const tp2RR=tp.rrTp2!=null?tp.rrTp2.toFixed(1):'—';
-  const tp3RR=tp.rrTp3!=null?tp.rrTp3.toFixed(1):'—';
 
   const copyText=[
     `═══════════════════════════════════`,
@@ -3146,8 +3119,6 @@ function renderConfluence(confluence) {
     `TP2 (${tp2RR}R) : ${fPrice(tp.tp2)}`,
     `Why         : ${tp.tp2R}`,
     ``,
-    `TP3 (${tp3RR}R) : ${fPrice(tp.tp3)}`,
-    `Why         : ${tp.tp3R}`,
     ``,
     `── INVALIDATION ──`,
     `Primary   : ${tp.invalidation}`,
@@ -3203,13 +3174,7 @@ function renderConfluence(confluence) {
       <div class="tsc-block-sub" style="margin-top:6px;">${tp.tp2R}<br><span style="color:var(--orange);">→ After TP2 hit: Trail SL to TP1 level</span></div>
     </div>`:`<div class="tsc-level-block tp2"><div class="tsc-block-label">🎯 TAKE PROFIT 2</div><div class="tsc-block-sub">No second SMC level identified — close full position at TP1</div></div>`;
 
-  const tp3HTML=tp.tp3?`
-    <div class="tsc-level-block tp3">
-      <div class="tsc-block-label">🎯 TAKE PROFIT 3${tp.tp3Type?` · ${tp.tp3Type}`:''}</div>
-      <div class="tsc-block-price">${fPrice(tp.tp3)}</div>
-      ${tp3RR!=='—'?`<span class="tsc-block-rr">${tp3RR}R REWARD</span>`:''}
-      <div class="tsc-block-sub" style="margin-top:6px;">${tp.tp3R}</div>
-    </div>`:`<div class="tsc-level-block tp3"><div class="tsc-block-label">🎯 TAKE PROFIT 3</div><div class="tsc-block-sub">No third SMC level identified — price discovery zone, hold a runner if momentum persists</div></div>`;
+
 
   // Invalidation block
   const invHTML=`
@@ -3244,7 +3209,6 @@ function renderConfluence(confluence) {
         <div class="tsc-grid single">${entryHTML}</div>
         <div class="tsc-grid">${slHTML}${invHTML}</div>
         <div class="tsc-grid">${tp1HTML}${tp2HTML}</div>
-        <div class="tsc-grid single">${tp3HTML}</div>
         ${signalsHTML}
       </div>
       <div class="tsc-disclaimer">⚠ NOT FINANCIAL ADVICE · THIS IS AN ALGORITHMIC ANALYSIS ONLY · ALWAYS DO YOUR OWN RESEARCH AND MANAGE RISK APPROPRIATELY · NEVER RISK MORE THAN YOU CAN AFFORD TO LOSE</div>
